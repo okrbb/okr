@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krízové riadenie OKR - Dashboard</title>
+    <link rel="icon" href="css/favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.1/dist/pizzip.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.57.3/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-header">
+                <h3>Ovládací panel</h3>
+            </div>
+            <div class="sidebar-section">
+                <label for="okresny-urad" class="sidebar-label">1. Vyberte okresný úrad</label>
+                <div class="select-item">
+                    <i class="fas fa-building"></i>
+                    <select name="okresny-urad" id="okresny-urad">
+                        <option value="">--- Prosím, vyberte OÚ ---</option>
+                    </select>
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <label class="sidebar-label">2. Vyberte agendu <i class="fas fa-question-circle help-icon" title="Zobraziť popis agend" data-help-topic="agenda-info"></i></label>
+                <div class="agenda-selection">
+                    <div class="agenda-card" data-agenda="vp">
+                        <i class="fas fa-truck"></i>
+                        <span>Vecné prostriedky</span>
+                    </div>
+                    <div class="agenda-card" data-agenda="pp">
+                        <i class="fas fa-briefcase"></i>
+                        <span>Pracovná povinnosť</span>
+                    </div>
+                    <div class="agenda-card" data-agenda="ub">
+                        <i class="fas fa-bed"></i>
+                        <span>Ubytovanie</span>
+                    </div>
+                    <div class="agenda-card" data-agenda="dr">
+                        <i class="fas fa-envelopes-bulk"></i>
+                        <span>Doručovatelia</span>
+                    </div>
+                </div>
+            </div>
+             <div class="sidebar-footer">
+                <button id="show-help-center" class="btn btn--secondary"><i class="fas fa-life-ring"></i> Centrum nápovedy</button>
+                <button id="reset-tour-btn" class="btn btn--secondary"><i class="fas fa-route"></i> Zobraziť sprievodcu</button>
+                <button id="reset-app-btn" class="btn btn--secondary"><i class="fas fa-sync-alt"></i> Resetovať</button>
+            </div>
+        </aside>
+
+        <main id="dashboard-content" class="dashboard-content">
+            <div class="welcome-message">
+                <i class="fas fa-hand-pointer"></i>
+                <h2>Vitajte v aplikácii</h2>
+                <p>Prosím, v paneli vľavo vyberte okresný úrad a následne agendu, s ktorou chcete pracovať.</p>
+            </div>
+        </main>
+    </div>
+    
+    <div id="spinner-overlay" class="spinner-overlay">
+        <div class="spinner"></div>
+    </div>
+    <div id="modal-container"></div>
+    
+    <script src="js/config.js" type="module"></script>
+    <script src="js/ui.js" type="module"></script>
+    <script src="js/DocumentProcessor.js" type="module"></script>
+    <script src="js/agendaConfigFactory.js" type="module"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+    <script src="js/tour.js" type="module"></script>
+
+    <script src="js/main-wizard.js" type="module"></script>
+</body>
+</html>
