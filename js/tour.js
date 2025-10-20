@@ -29,7 +29,7 @@ export function startGuidedTour() {
             <div class="tour-step-header">
                 <i class="fas fa-route"></i>
                 <div class="title-group">
-                    <h3>Krok 1/3: Výber úradu</h3>
+                    <h3>Krok 1/4: Výber úradu</h3>
                     <span>Začnite výberom pracoviska</span>
                 </div>
             </div>`,
@@ -50,7 +50,7 @@ export function startGuidedTour() {
             <div class="tour-step-header">
                 <i class="fas fa-route"></i>
                 <div class="title-group">
-                    <h3>Krok 2/3: Výber agendy</h3>
+                    <h3>Krok 2/4: Výber agendy</h3>
                     <span>Zvoľte typ dokumentov</span>
                 </div>
             </div>`,
@@ -75,7 +75,7 @@ export function startGuidedTour() {
             <div class="tour-step-header">
                 <i class="fas fa-route"></i>
                 <div class="title-group">
-                    <h3>Krok 3/3: Pracovná plocha</h3>
+                    <h3>Krok 3/4: Pracovná plocha</h3>
                     <span>Hlavný priestor pre vašu prácu</span>
                 </div>
             </div>`,
@@ -83,6 +83,32 @@ export function startGuidedTour() {
         attachTo: {
             element: '#dashboard-content',
             on: 'left'
+        },
+        buttons: [{
+            text: 'Späť',
+            secondary: true,
+            action: tour.back
+        }, {
+            text: 'Ďalej', // ZMENA: Toto tlačidlo teraz vedie na ďalší krok
+            action: tour.next
+        }]
+    });
+
+    // --- NOVÝ KROK PRE OVLÁDACIE TLAČIDLÁ ---
+    tour.addStep({
+        id: 'step4-footer',
+        title: `
+            <div class="tour-step-header">
+                <i class="fas fa-route"></i>
+                <div class="title-group">
+                    <h3>Krok 4/4: Nástroje a pomoc</h3>
+                    <span>Rýchly prístup k funkciám</span>
+                </div>
+            </div>`,
+        text: 'Tu nájdete užitočné nástroje: Centrum notifikácií, Nápovedu, opätovné spustenie tohto sprievodcu a možnosť resetovať celú aplikáciu.',
+        attachTo: {
+            element: '.sidebar-footer',
+            on: 'top'
         },
         buttons: [{
             text: 'Späť',

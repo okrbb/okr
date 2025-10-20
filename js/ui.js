@@ -106,12 +106,19 @@ export function showErrorModal({ title = 'Chyba', message, details = '' }) {
 
 
 /**
- * Zobrazí notifikáciu s ikonou.
+ * Zobrazí dočasnú "toast" notifikáciu a odošle udalosť pre centrum notifikácií.
  * @param {string} message - Správa na zobrazenie.
  * @param {string} type - Typ notifikácie (info, success, warning, error).
  * @param {number} duration - Dĺžka zobrazenia v ms.
  */
 export function showNotification(message, type = 'info', duration = 3000) {
+    // --- ZMENA: Odoslanie udalosti pre centrum notifikácií ---
+    document.dispatchEvent(new CustomEvent('add-notification', {
+        detail: { message, type }
+    }));
+    // ---------------------------------------------------------
+
+    // Ponechávame pôvodné správanie pre okamžitú vizuálnu spätnú väzbu
     const container = document.body;
     const notification = document.createElement('div');
     

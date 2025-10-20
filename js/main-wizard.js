@@ -11,7 +11,8 @@ const AppState = {
     spis: {},
     selectedAgendaKey: null,
     processor: null,
-    files: {}
+    files: {},
+    notifications: [] // <-- NOVÝ STAV pre notifikácie
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,6 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const helpCenterBtn = document.getElementById('show-help-center');
     const resetTourBtn = document.getElementById('reset-tour-btn');
 
+    // === NOVÉ: DOM ELEMENTY PRE CENTRUM NOTIFIKÁCIÍ ===
+    const notificationBellBtn = document.getElementById('notification-bell-btn');
+    const notificationPanel = document.getElementById('notification-center-panel');
+    const notificationList = document.getElementById('notification-list');
+    const notificationBadge = document.querySelector('.notification-badge');
+    const clearNotificationsBtn = document.getElementById('clear-notifications-btn');
+
     const sidebarSteps = {
         step1: document.getElementById('sidebar-step-1'),
         step2: document.getElementById('sidebar-step-2'),
@@ -33,6 +41,93 @@ document.addEventListener('DOMContentLoaded', () => {
     populateOkresnyUradSelect();
     initializeFromLocalStorage();
     startGuidedTour();
+
+    // ======================================================
+    // === NOVÉ: LOGIKA PRE CENTRUM NOTIFIKÁCIÍ ============
+    // ======================================================
+    
+    /**
+     * Vykreslí notifikácie zo stavu AppState.notifications do panela.
+     */
+    function renderNotifications() {
+        if (!notificationList) return;
+
+        if (AppState.notifications.length === 0) {
+            notificationList.innerHTML = '<li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>';
+        } else {
+            // Zobrazujeme maximálne posledných 50 notifikácií, aby sme nepreťažili DOM
+            notificationList.innerHTML = AppState.notifications.slice(0, 50).map(n => `
+                <li class="notification-item ${n.type}">
+                    <i class="fas ${getIconForType(n.type)} icon"></i>
+                    <div class="content">
+                        <p>${n.message}</p>
+                        <div class="meta">${new Date(n.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                </li>
+            `).join('');
+        }
+        
+        const unreadCount = AppState.notifications.length;
+        notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        notificationBadge.style.display = unreadCount > 0 ? 'block' : 'none';
+    }
+
+    /**
+     * Pridá novú notifikáciu do stavu.
+     * @param {string} message - Správa notifikácie.
+     * @param {string} type - Typ (success, error, info, warning).
+     */
+    function addNotification(message, type = 'info') {
+        const newNotification = {
+            id: Date.now(),
+            message,
+            type,
+            timestamp: new Date()
+        };
+        // Pridáme najnovšiu na začiatok poľa
+        AppState.notifications.unshift(newNotification);
+        renderNotifications();
+    }
+
+    /**
+     * Vráti CSS triedu ikony na základe typu notifikácie.
+     * @param {string} type - Typ notifikácie.
+     * @returns {string} - Trieda ikony.
+     */
+    function getIconForType(type) {
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-times-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+        return icons[type] || 'fa-info-circle';
+    }
+
+    // --- Event Listenery pre Centrum Notifikácií ---
+    notificationBellBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Zabráni zavretiu panelu hneď po otvorení
+        notificationPanel.classList.toggle('show');
+    });
+
+    clearNotificationsBtn.addEventListener('click', () => {
+        AppState.notifications = [];
+        renderNotifications();
+        showNotification('História notifikácií bola vymazaná.', 'info');
+    });
+
+    // Počúva na udalosť odoslanú z ui.js a pridáva notifikáciu do stavu
+    document.addEventListener('add-notification', (e) => {
+        const { message, type } = e.detail;
+        addNotification(message, type);
+    });
+
+    // Zavrie panel, ak sa klikne mimo neho
+    document.addEventListener('click', (e) => {
+        if (!notificationPanel.contains(e.target) && notificationPanel.classList.contains('show')) {
+            notificationPanel.classList.remove('show');
+        }
+    });
 
     // ===================================
     // RIADENIE STAVU UI
@@ -80,7 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('krokr-lastAgenda');
         Object.assign(AppState, {
             selectedOU: null, okresData: null, spis: {}, 
-            selectedAgendaKey: null, processor: null, files: {}
+            selectedAgendaKey: null, processor: null, files: {},
+            notifications: [] // Resetujeme aj notifikácie
         });
         
         ouSelect.value = '';
@@ -88,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         showWelcomeMessage();
         updateUIState();
+        renderNotifications(); // Vykreslíme prázdny stav
         showNotification('Aplikácia bola resetovaná.', 'info');
     }
 
@@ -455,14 +552,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const saveFileNumber = () => {
-            const value = spisInput.value.trim();
-            if (value) {
-                AppState.spis[AppState.selectedAgendaKey] = value;
-                showNotification(`Číslo spisu bolo uložené.`, 'success');
-                AppState.processor?.checkAllButtonsState();
-                updateUIState();
-            }
-        };
+    const value = spisInput.value.trim();
+    const existingValue = AppState.spis[AppState.selectedAgendaKey];
+
+    // --- KĽÚČOVÁ ZMENA: Uložíme a notifikujeme iba vtedy, ak je hodnota nová ---
+    if (value && value !== existingValue) {
+        AppState.spis[AppState.selectedAgendaKey] = value;
+        showNotification(`Číslo spisu bolo uložené.`, 'success');
+        AppState.processor?.checkAllButtonsState();
+        updateUIState();
+    }
+};
 
         saveSpisBtn.addEventListener('click', saveFileNumber);
         spisInput.addEventListener('blur', saveFileNumber);

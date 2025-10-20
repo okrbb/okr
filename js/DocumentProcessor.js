@@ -209,7 +209,8 @@ export class DocumentProcessor {
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
             tracker.close();
-            showNotification('Dokumenty boli úspešne vygenerované!', 'success');
+            // --- ZMENA 1/3: Špecifická notifikácia ---
+            showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
 
         } catch (error) {
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
@@ -267,7 +268,8 @@ export class DocumentProcessor {
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
             tracker.close();
-            showNotification('Dokumenty boli úspešne vygenerované!', 'success');
+            // --- ZMENA 2/3: Špecifická notifikácia ---
+            showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
 
         } catch (error) {
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
@@ -347,7 +349,8 @@ export class DocumentProcessor {
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
             tracker.close();
-            showNotification('Dokumenty boli úspešne vygenerované!', 'success');
+            // --- ZMENA 3/3: Špecifická notifikácia ---
+            showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
 
         } catch (error) {
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
