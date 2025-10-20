@@ -287,10 +287,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="accordion-content">
                                 Tlačidlá sa automaticky aktivujú, keď sú splnené všetky nasledujúce podmienky:
                                 <ul>
-                                    <li>Je vybraný okresný úrad.</li>
-                                    <li>Je zvolená agenda.</li>
-                                    <li>Je zadané a uložené <strong>číslo spisu</strong>.</li>
-                                    <li>Je nahratý a úspešne spracovaný <strong>vstupný .xlsx súbor</strong>.</li>
+                                    <li>je vybraný okresný úrad</li>
+                                    <li>je zvolená agenda</li>
+                                    <li>je zadané a uložené <strong>číslo spisu</strong></li>
+                                    <li>je nahratý a úspešne spracovaný <strong>vstupný .xlsx súbor</strong></li>
                                 </ul>
                             </div>
                         </div>
@@ -299,9 +299,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="accordion-content">
                                 Pri rozhodnutiach pre vecné prostriedky a pre ubytovanie aplikácia automaticky vkladá správny odsek a písmeno Zákona č. 319/2002 Z. z. na základe prítomnosti lomky "/" v IČO(RČ) alebo prázdnej bunky.
                                 <ul>
-                                    <li><b>Pre PO, FOP:</b> ods. 1 písm. d)</li>
-                                    <li><b>Pre FO:</b> ods. 3 písm. b)</li>
+                                    <li><b>pre PO, FOP (číslo bez / v bunke):</b> ods. 1 písm. d)</li>
+                                    <li><b>pre FO (číslo s / v bunke, alebo prázdna bunka):</b> ods. 3 písm. b)</li>
                                 </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <div class="accordion-header">Dajú sa vygenerované dokumenty editovať?</div>
+                            <div class="accordion-content">
+                                Áno, všetky vygenerované dokumenty .docx sú plne editovateľné (napr. v Microsoft Word alebo LibreOffice). Môžete ich upravovať podľa potreby pred ich finálnym uložením alebo tlačou.
                             </div>
                         </div>
                         <div class="accordion-item">
@@ -309,9 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="accordion-content">
                                 Najčastejšou príčinou je nesprávny formát vstupného .xlsx súboru. Skontrolujte prosím, či:
                                 <ul>
-                                    <li>Súbor obsahuje všetky požadované stĺpce.</li>
-                                    <li>Názvy stĺpcov presne zodpovedajú predlohe.</li>
-                                    <li>Dáta v súbore sú v očakávanom formáte a bunky nie sú zlúčené.</li>
+                                    <li>súbor obsahuje všetky požadované stĺpce</li>
+                                    <li>názvy stĺpcov presne zodpovedajú predlohe</li>
+                                    <li>dáta v súbore sú v očakávanom formáte a bunky nie sú zlúčené</li>
                                 </ul>
                                 Pre viac detailov si pozrite chybové hlásenie, ktoré sa zobrazí, alebo sekciu "Riešenie problémov".
                             </div>
