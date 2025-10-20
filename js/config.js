@@ -119,3 +119,36 @@ export const OKRESNE_URADY = {
         OU_v: "V Žiari nad Hronom"
     }
 };
+
+/**
+ * Centrálna konfigurácia ciest k šablónam dokumentov.
+ */
+export const TEMPLATE_PATHS = {
+    // Spoločné šablóny
+    zoznamyDorucenie: 'TEMP/TEMP_ZOZNAMY_DORUCENIE.docx',
+    
+    // Vecné prostriedky (VP)
+    vp: {
+        rozhodnutie: 'TEMP/VP/TEMP_ROZHODNUTIE_VP.docx',
+        obalky: 'TEMP/VP/TEMP_OBALKY_VP.docx',
+        ph: 'TEMP/VP/TEMP_pHAROK_VP.docx',
+    },
+    // Pracovná povinnosť (PP)
+    pp: {
+        rozhodnutie: 'TEMP/PP/TEMP_ROZHODNUTIE_PP.docx',
+        obalky: 'TEMP/PP/TEMP_OBALKY_PP.docx',
+        ph: 'TEMP/PP/TEMP_pHAROK_PP.docx',
+    },
+    // Ubytovanie (UB)
+    ub: {
+        rozhodnutie: 'TEMP/UB/TEMP_ROZHODNUTIE_UB.docx',
+        obalky: 'TEMP/UB/TEMP_OBALKY_UB.docx',
+        ph: 'TEMP/UB/TEMP_pHAROK_UB.docx',
+    },
+    // Doručovatelia (DR)
+    dr: {
+        rozhodnutie: 'TEMP/DR/TEMP_ROZHODNUTIE_DR.docx',
+        obalky: 'TEMP/DR/TEMP_OBALKY_DR.docx',
+        ph: 'TEMP/DR/TEMP_pHAROK_DR.docx',
+    }
+};

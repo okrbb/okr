@@ -1,6 +1,6 @@
 // js/agendaConfigFactory.js
 
-import { POSTOVNE } from './config.js';
+import { POSTOVNE, TEMPLATE_PATHS } from './config.js'; // <-- PRIDANÝ IMPORT TEMPLATE_PATHS
 
 // =============================================================================
 //  KONFIGURÁCIA PRE JEDNOTLIVÉ AGENDY
@@ -120,7 +120,7 @@ export const agendaConfigs = {
                 type: 'row',
                 buttonId: 'download-rozhodnutia-vp',
                 templateKey: 'rozhodnutia',
-                templatePath: 'TEMP/VP/TEMP_ROZHODNUTIE_VP.docx',
+                templatePath: TEMPLATE_PATHS.vp.rozhodnutie, // <-- ZMENA
                 title: 'Generovanie rozhodnutí VP',
                 zipName: 'rozhodnutia_VP.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
@@ -150,7 +150,7 @@ export const agendaConfigs = {
                 type: 'row',
                 buttonId: 'download-obalky-vp',
                 templateKey: 'obalky',
-                templatePath: 'TEMP/VP/TEMP_OBALKY_VP.docx',
+                templatePath: TEMPLATE_PATHS.vp.obalky, // <-- ZMENA
                 title: 'Generovanie obálok VP',
                 zipName: 'obalky_VP.zip',
                  dataMapper: ({ row, columnMap, appState }) => {
@@ -174,7 +174,7 @@ export const agendaConfigs = {
                 type: 'batch',
                 buttonId: 'download-ph-vp',
                 templateKey: 'ph',
-                templatePath: 'TEMP/VP/TEMP_pHAROK_VP.docx',
+                templatePath: TEMPLATE_PATHS.vp.ph, // <-- ZMENA
                 batchSize: 8,
                 title: 'Generovanie podacích hárkov VP',
                 zipName: 'podacieHarky_VP.zip',
@@ -208,7 +208,7 @@ export const agendaConfigs = {
                 type: 'groupBy',
                 buttonId: 'download-zoznamy-doruc-vp',
                 templateKey: 'zoznamyDoruc',
-                templatePath: 'TEMP/TEMP_ZOZNAMY_DORUCENIE.docx',
+                templatePath: TEMPLATE_PATHS.zoznamyDorucenie, // <-- ZMENA
                 groupByColumn: 'MESTO (OBEC)',
                 title: 'Generovanie zoznamov na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_VP.zip',
@@ -316,7 +316,7 @@ export const agendaConfigs = {
                 type: 'row',
                 buttonId: 'download-rozhodnutia-pp',
                 templateKey: 'rozhodnutia',
-                templatePath: 'TEMP/PP/TEMP_ROZHODNUTIE_PP.docx',
+                templatePath: TEMPLATE_PATHS.pp.rozhodnutie, // <-- ZMENA
                 title: 'Generovanie rozhodnutí PP',
                 zipName: 'rozhodnutia_PP.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
@@ -346,7 +346,7 @@ export const agendaConfigs = {
                 type: 'row',
                 buttonId: 'download-obalky-pp',
                 templateKey: 'obalky',
-                templatePath: 'TEMP/PP/TEMP_OBALKY_PP.docx',
+                templatePath: TEMPLATE_PATHS.pp.obalky, // <-- ZMENA
                 title: 'Generovanie obálok PP',
                 zipName: 'obalky_PP.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
@@ -375,7 +375,7 @@ export const agendaConfigs = {
                 type: 'batch',
                 buttonId: 'download-ph-pp',
                 templateKey: 'ph',
-                templatePath: 'TEMP/PP/TEMP_pHAROK_PP.docx',
+                templatePath: TEMPLATE_PATHS.pp.ph, // <-- ZMENA
                 batchSize: 8,
                 title: 'Generovanie podacích hárkov PP',
                 zipName: 'podacieHarky_PP.zip',
@@ -416,7 +416,7 @@ export const agendaConfigs = {
                 type: 'groupBy',
                 buttonId: 'download-zoznamy-doruc-pp',
                 templateKey: 'zoznamyDoruc',
-                templatePath: 'TEMP/TEMP_ZOZNAMY_DORUCENIE.docx',
+                templatePath: TEMPLATE_PATHS.zoznamyDorucenie, // <-- ZMENA
                 groupByColumn: 'Obec',
                 title: 'Generovanie zoznamov na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_PP.zip',
@@ -502,7 +502,7 @@ export const agendaConfigs = {
                 type: 'row',
                 buttonId: 'download-rozhodnutia-ub',
                 templateKey: 'rozhodnutia',
-                templatePath: 'TEMP/UB/TEMP_ROZHODNUTIE_UB.docx',
+                templatePath: TEMPLATE_PATHS.ub.rozhodnutie, // <-- ZMENA
                 title: 'Generovanie rozhodnutí UB',
                 zipName: 'rozhodnutia_UB.zip',
                 dataMapper: ({ row, columnMap, appState, index }) => { // <-- Pridaný 'index'
@@ -529,7 +529,7 @@ export const agendaConfigs = {
                 type: 'row',
                 buttonId: 'download-obalky-ub',
                 templateKey: 'obalky',
-                templatePath: 'TEMP/UB/TEMP_OBALKY_UB.docx',
+                templatePath: TEMPLATE_PATHS.ub.obalky, // <-- ZMENA
                 title: 'Generovanie obálok UB',
                 zipName: 'obalky_UB.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
@@ -552,7 +552,7 @@ export const agendaConfigs = {
                 type: 'batch',
                 buttonId: 'download-ph-ub',
                 templateKey: 'ph',
-                templatePath: 'TEMP/UB/TEMP_pHAROK_UB.docx',
+                templatePath: TEMPLATE_PATHS.ub.ph, // <-- ZMENA
                 batchSize: 8,
                 title: 'Generovanie podacích hárkov UB',
                 zipName: 'podacieHarky_UB.zip',
@@ -590,7 +590,7 @@ export const agendaConfigs = {
                 type: 'groupBy',
                 buttonId: 'download-zoznamy-doruc-ub',
                 templateKey: 'zoznamyDoruc',
-                templatePath: 'TEMP/TEMP_ZOZNAMY_DORUCENIE.docx',
+                templatePath: TEMPLATE_PATHS.zoznamyDorucenie, // <-- ZMENA
                 groupByColumn: 'Obec',
                 title: 'Generovanie zoznamov na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_UB.zip',
@@ -674,7 +674,7 @@ export const agendaConfigs = {
                 type: 'row',
                 buttonId: 'download-rozhodnutia-dr',
                 templateKey: 'rozhodnutia',
-                templatePath: 'TEMP/DR/TEMP_ROZHODNUTIE_DR.docx',
+                templatePath: TEMPLATE_PATHS.dr.rozhodnutie, // <-- ZMENA
                 title: 'Generovanie rozhodnutí DR',
                 zipName: 'rozhodnutia_DR.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
@@ -698,7 +698,7 @@ export const agendaConfigs = {
                 type: 'row',
                 buttonId: 'download-obalky-dr',
                 templateKey: 'obalky',
-                templatePath: 'TEMP/DR/TEMP_OBALKY_DR.docx',
+                templatePath: TEMPLATE_PATHS.dr.obalky, // <-- ZMENA
                 title: 'Generovanie obálok DR',
                 zipName: 'obalky_DR.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
@@ -727,7 +727,7 @@ export const agendaConfigs = {
                 type: 'batch',
                 buttonId: 'download-ph-dr',
                 templateKey: 'ph',
-                templatePath: 'TEMP/DR/TEMP_pHAROK_DR.docx',
+                templatePath: TEMPLATE_PATHS.dr.ph, // <-- ZMENA
                 batchSize: 8,
                 title: 'Generovanie podacích hárkov DR',
                 zipName: 'podacieHarky_DR.zip',
@@ -770,7 +770,7 @@ export const agendaConfigs = {
                 type: 'groupBy',
                 buttonId: 'download-zoznamy-doruc-dr',
                 templateKey: 'zoznamyDoruc',
-                templatePath: 'TEMP/TEMP_ZOZNAMY_DORUCENIE.docx',
+                templatePath: TEMPLATE_PATHS.zoznamyDorucenie, // <-- ZMENA
                 groupByColumn: 'Obec',
                 title: 'Generovanie zoznamov na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_DR.zip',
