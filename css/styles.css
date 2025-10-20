@@ -826,3 +826,31 @@ body {
     color: var(--secondary-color);
     margin-bottom: 0.5rem;
 }
+
+/* ====================================================== */
+/* === Vylepšené štýly pre zoznamy v Centre nápovedy === */
+/* ====================================================== */
+
+.accordion-content ul {
+    padding-left: 25px;
+    margin: 1rem 0;
+    list-style-type: disc; /* Explicitne nastavíme guličky */
+}
+
+.accordion-content li {
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+    line-height: 1.5; /* Zlepší riadkovanie pre lepšiu čitateľnosť */
+}
+
+/* Moderný spôsob štýlovania samotnej odrážky (guličky) */
+.accordion-content li::marker {
+    color: var(--primary-color);
+    font-size: 1.1em;
+}
+
+/* Zvýraznenie tučného textu v zozname, ako "Pre PO, FOP:" */
+.accordion-content li b {
+    color: var(--secondary-color);
+    font-weight: 600;
+}
