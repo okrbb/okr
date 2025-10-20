@@ -4,106 +4,66 @@ export class DocumentProcessor {
     constructor(config) {
         this.config = config;
         this.state = {
-            data: null,
-            templates: {},
+            data: {},
+            templates: {}, // Tento objekt sa teraz bude plniť postupne
             processedData: null,
             appState: config.appState,
         };
-        this.init();
     }
 
-    init() {
-        this.config.dataInputs.forEach(inputConfig => {
-            const el = document.getElementById(inputConfig.elementId);
-            el.addEventListener('change', (e) => this.handleFileLoad(e, inputConfig.stateKey));
-        });
-
-        Object.keys(this.config.generators).forEach(key => {
-            const generatorConfig = this.config.generators[key];
-            const el = document.getElementById(generatorConfig.buttonId);
-            if(el) {
-                el.addEventListener('click', () => {
-                    const generator = this.config.generators[key];
-                    if (!generator) return;
-
-                    switch (generator.type) {
-                        case 'batch':
-                            this.generateInBatches(key);
-                            break;
-                        case 'groupBy':
-                            this.generateByGroup(key);
-                            break;
-                        default: // 'row' by default
-                            this.generateRowByRow(key);
-                            break;
-                    }
-                });
-            }
-        });
-
-        document.addEventListener('ou-selected', (e) => {
-            this.state.appState = e.detail;
-            this.checkAllButtonsState();
-        });
-    }
-
+    /**
+     * === ZMENA: Optimalizácia výkonu ===
+     * Táto metóda sa už nebude starať o načítavanie všetkých šablón naraz.
+     * Ponechávame ju prázdnu pre zachovanie kompatibility s volaním v main-wizard.js.
+     * Šablóny sa teraz načítavajú "lenivo" (lazy-loading) až priamo pri generovaní.
+     */
     async loadTemplates() {
-        toggleSpinner(true);
-        const promises = [];
-        const templatesToLoad = new Map();
+        // Tento blok je zámerne prázdny.
+        this.checkAllButtonsState(); // Skontrolujeme stav tlačidiel po inicializácii
+    }
 
-        Object.values(this.config.generators).forEach(genConf => {
-            if (genConf.templatePath && genConf.templateKey) {
-                if (!templatesToLoad.has(genConf.templateKey)) {
-                    templatesToLoad.set(genConf.templateKey, genConf.templatePath);
-                }
-            }
-        });
-
-        for (const [key, path] of templatesToLoad.entries()) {
-            const promise = fetch(path)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Šablónu sa nepodarilo nájsť na ceste: ${path} (Status: ${response.status})`);
-                    }
-                    return response.arrayBuffer();
-                })
-                .then(buffer => {
-                    this.state.templates[key] = new Uint8Array(buffer);
-                });
-            promises.push(promise);
+    /**
+     * === NOVÉ: Privátna metóda pre Lazy Loading ===
+     * Zabezpečí, že konkrétna šablóna je načítaná. Ak nie je v pamäti, načíta ju.
+     * @param {string} templateKey - Kľúč šablóny (napr. 'rozhodnutia').
+     * @param {string} templatePath - Cesta k súboru šablóny.
+     */
+    async _ensureTemplateLoaded(templateKey, templatePath) {
+        // Ak šablóna už existuje v stave, nerobíme nič.
+        if (this.state.templates[templateKey]) {
+            return;
         }
+
+        toggleSpinner(true);
+        showNotification(`Pripravuje sa šablóna: ${templateKey}...`, 'info', 2000);
 
         try {
-            await Promise.all(promises);
-            if (promises.length > 0) {
-                showNotification('Všetky šablóny boli úspešne načítané.', 'success');
+            const response = await fetch(templatePath);
+            if (!response.ok) {
+                throw new Error(`Šablónu sa nepodarilo nájsť na ceste: ${templatePath} (Status: ${response.status})`);
             }
+            const buffer = await response.arrayBuffer();
+            this.state.templates[templateKey] = new Uint8Array(buffer);
+            showNotification(`Šablóna '${templateKey}' je pripravená.`, 'success');
         } catch (error) {
-            showErrorModal({ message: 'Nastala kritická chyba pri načítaní šablón.', details: error.message });
+            showErrorModal({ message: `Nastala kritická chyba pri načítaní šablóny '${templateKey}'.`, details: error.message });
+            throw error; // Znovu vyhodíme chybu, aby sa proces generovania zastavil
         } finally {
             toggleSpinner(false);
-            this.checkAllButtonsState();
         }
     }
-
-    async handleFileLoad(event, stateKey) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        this.state.data = this.state.data || {};
-        this.state.data[stateKey] = arrayBuffer;
-        // Odstránili sme notifikáciu o načítaní súboru, pretože je nadbytočná.
-        
-        this.checkAndProcessData(); 
-
-    } catch (error) {
-         showErrorModal({ message: `Chyba pri načítaní súboru ${file.name}: ${error.message}` });
+    
+    async processFile(file, stateKey) {
+        if (!file) return;
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            this.state.data[stateKey] = arrayBuffer;
+            this.checkAndProcessData(); 
+        } catch (error) {
+             showErrorModal({ message: `Chyba pri načítaní súboru ${file.name}: ${error.message}` });
+        }
+        this.checkAllButtonsState();
     }
-    this.checkAllButtonsState();
-}
     
     checkAndProcessData() {
         const allDataLoaded = this.config.dataInputs.every(dc => this.state.data && this.state.data[dc.stateKey]);
@@ -117,16 +77,17 @@ export class DocumentProcessor {
             showNotification('Pre túto sekciu nie je definované spracovanie dát.', 'error');
             return;
         }
-        if (this.state.processedData) {
-            return;
-        }
-
+        
+        this.state.processedData = null;
         toggleSpinner(true);
         setTimeout(() => {
             try {
                 this.state.processedData = this.config.dataProcessor(this.state.data);
                 this.displayPreview();
                 showNotification('Dáta boli úspešne automaticky spracované.', 'success');
+                if (this.config.onDataProcessed) {
+                    this.config.onDataProcessed();
+                }
             } catch (error) {
                 showErrorModal({
                     message: `Nastala chyba pri spracovaní dát: ${error.message}`,
@@ -178,16 +139,12 @@ export class DocumentProcessor {
 
         const headerHTML = `
             <div class="data-preview-header">
-                <span class="preview-stat preview-stat--total">
-                    <i class="fas fa-list-ol"></i> Počet záznamov: <strong>${rows.length}</strong>
-                </span>
-                <span class="preview-stat ${issuesCount > 0 ? 'preview-stat--issues' : ''}">
-                    <i class="fas fa-exclamation-triangle"></i> Potenciálne problémy: <strong>${issuesCount}</strong>
-                </span>
+                <span><i class="fas fa-list-ol"></i> Počet záznamov: <strong>${rows.length}</strong></span>
+                <span style="margin-left: 20px;" class="${issuesCount > 0 ? 'text-danger' : ''}"><i class="fas fa-exclamation-triangle"></i> Potenciálne problémy: <strong>${issuesCount}</strong></span>
             </div>
         `;
         
-        previewContainer.innerHTML = headerHTML + `<div class="data-preview-table">${tableHTML}</div>`;
+        previewContainer.innerHTML = headerHTML + `<div class="data-preview-table-wrapper">${tableHTML}</div>`;
     }
 
     checkAllButtonsState() {
@@ -195,12 +152,12 @@ export class DocumentProcessor {
             const generatorConfig = this.config.generators[key];
             const btn = document.getElementById(generatorConfig.buttonId);
             if(btn) {
-                const templateLoaded = generatorConfig.templateKey ? !!this.state.templates[generatorConfig.templateKey] : true;
+                // ZMENA: Kontrola načítania šablóny je odstránená, pretože to už nie je podmienka pre aktiváciu tlačidla.
                 const dataProcessed = !!this.state.processedData;
                 const spisFilled = (this.config.sectionPrefix && this.state.appState.spis) ? !!this.state.appState.spis[this.config.sectionPrefix] : true;
                 const ouSelected = !!this.state.appState.selectedOU;
 
-                const isReady = templateLoaded && dataProcessed && spisFilled && ouSelected;
+                const isReady = dataProcessed && spisFilled && ouSelected;
                 btn.disabled = !isReady;
                 btn.classList.toggle('ready', isReady);
             }
@@ -218,6 +175,11 @@ export class DocumentProcessor {
         setButtonState(button, 'loading', 'Generujem...');
 
         try {
+            // === ZMENA: Lazy Loading šablóny ===
+            if (generator.templateKey && generator.templatePath) {
+                await this._ensureTemplateLoaded(generator.templateKey, generator.templatePath);
+            }
+
             const dataRows = this.state.processedData.slice(1);
             const headerRow = this.state.processedData[0];
             const columnMap = this.createColumnMap(headerRow);
@@ -252,7 +214,8 @@ export class DocumentProcessor {
         } catch (error) {
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
         } finally {
-            setButtonState(button, 'reset', 'Generovať');
+            const originalButtonText = button.textContent.includes('Exportovať') ? 'Exportovať (.xlsx)' : 'Generovať (.docx)';
+            setButtonState(button, 'reset', originalButtonText);
         }
     }
 
@@ -267,6 +230,11 @@ export class DocumentProcessor {
         setButtonState(button, 'loading', 'Generujem...');
         
         try {
+            // === ZMENA: Lazy Loading šablóny ===
+            if (generator.templateKey && generator.templatePath) {
+                await this._ensureTemplateLoaded(generator.templateKey, generator.templatePath);
+            }
+
             const dataRows = this.state.processedData.slice(1);
             const headerRow = this.state.processedData[0];
             const columnMap = this.createColumnMap(headerRow);
@@ -304,14 +272,15 @@ export class DocumentProcessor {
         } catch (error) {
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
         } finally {
-            setButtonState(button, 'reset', 'Generovať');
+            const originalButtonText = button.textContent.includes('Exportovať') ? 'Exportovať (.xlsx)' : 'Generovať (.docx)';
+            setButtonState(button, 'reset', originalButtonText);
         }
     }
 
     async generateByGroup(generatorKey) {
         const generator = this.config.generators[generatorKey];
         const button = document.getElementById(generator.buttonId);
-        const originalButtonText = button.querySelector('.btn-text')?.textContent || 'Exportovať';
+        const originalButtonText = button.querySelector('.btn-text')?.textContent || 'Exportovať (.xlsx)';
         if (!this.state.processedData || this.state.processedData.length === 0) {
             showErrorModal({ message: 'Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.' });
             return;
@@ -320,6 +289,11 @@ export class DocumentProcessor {
         setButtonState(button, 'loading', 'Exportujem...');
         
         try {
+            // === ZMENA: Lazy Loading šablóny (ak by sa použila pre .docx v tejto metóde) ===
+            if (generator.templateKey && generator.templatePath) {
+                await this._ensureTemplateLoaded(generator.templateKey, generator.templatePath);
+            }
+        
             const dataRows = this.state.processedData.slice(1);
             const headerRow = this.state.processedData[0];
             const columnMap = this.createColumnMap(headerRow);

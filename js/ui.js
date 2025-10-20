@@ -1,49 +1,9 @@
-// ui.js
-export function initNavigation() {
-    const navItems = document.querySelectorAll('.nav-item');
-    const sections = document.querySelectorAll('.content-section');
+// js/ui.js
 
-    const switchSection = (sectionId) => {
-        // Navigácia
-        navItems.forEach(item => {
-            item.classList.toggle('active', item.dataset.section === sectionId);
-        });
-
-        // Obsah
-        sections.forEach(section => {
-            if (section.id === sectionId) {
-                section.style.display = 'block';
-                setTimeout(() => section.classList.add('active'), 10);
-            } else {
-                section.classList.remove('active');
-                setTimeout(() => section.style.display = 'none', 300);
-            }
-        });
-    };
-
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const sectionId = item.dataset.section;
-            if (sectionId) {
-                switchSection(sectionId);
-                window.history.pushState(null, '', `#${sectionId}`);
-            }
-        });
-    });
-
-     const footerLinks = document.querySelectorAll('.footer-section a');
-     footerLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const sectionId = new URL(link.href).hash.substring(1);
-            if (sectionId) {
-                switchSection(sectionId);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        });
-    });
-}
-
+/**
+ * Zobrazí modálne okno s daným obsahom.
+ * @param {object} options - Objekt s konfiguráciou { title, content, pages }.
+ */
 export function showModal({ title, content, pages = [] }) {
     const modalContainer = document.getElementById('modal-container');
     let currentPage = 0;
@@ -88,9 +48,9 @@ export function showModal({ title, content, pages = [] }) {
         }
     });
 
+    // Logika pre prepínanie kariet (tabs)
     const tabs = overlay.querySelectorAll('.modal-tab');
     const tabContents = overlay.querySelectorAll('.modal-tab-content');
-
     if (tabs.length > 0 && tabContents.length > 0) {
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -105,18 +65,14 @@ export function showModal({ title, content, pages = [] }) {
         });
     }
 
+    // Logika pre akordeón
     const accordionItems = overlay.querySelectorAll('.accordion-item');
     if (accordionItems.length > 0) {
         accordionItems.forEach(item => {
             const header = item.querySelector('.accordion-header');
             header.addEventListener('click', () => {
-                const isActive = item.classList.contains('active');
-                accordionItems.forEach(otherItem => {
-                    otherItem.classList.remove('active');
-                });
-                if (!isActive) {
-                    item.classList.add('active');
-                }
+                // *** ZMENA: Umožní otvoriť viacero položiek naraz ***
+                item.classList.toggle('active');
             });
         });
     }
@@ -138,6 +94,10 @@ export function showModal({ title, content, pages = [] }) {
     }
 }
 
+/**
+ * Zobrazí modálne okno pre chybové hlásenia.
+ * @param {object} options - Objekt s konfiguráciou { title, message, details }.
+ */
 export function showErrorModal({ title = 'Chyba', message, details = '' }) {
     const titleHTML = `<div class="help-center-header"><i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i><h3>${title}</h3></div>`;
     const content = `<p>${message}</p>${details ? `<pre><code>${details}</code></pre>` : ''}`;
@@ -145,11 +105,25 @@ export function showErrorModal({ title = 'Chyba', message, details = '' }) {
 }
 
 
+/**
+ * Zobrazí notifikáciu s ikonou.
+ * @param {string} message - Správa na zobrazenie.
+ * @param {string} type - Typ notifikácie (info, success, warning, error).
+ * @param {number} duration - Dĺžka zobrazenia v ms.
+ */
 export function showNotification(message, type = 'info', duration = 3000) {
     const container = document.body;
     const notification = document.createElement('div');
+    
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-times-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+
     notification.className = `notification notification--${type}`;
-    notification.textContent = message;
+    notification.innerHTML = `<i class="fas ${icons[type]}"></i><span>${message}</span>`;
     container.appendChild(notification);
 
     setTimeout(() => notification.classList.add('show'), 10);
@@ -160,6 +134,10 @@ export function showNotification(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
+/**
+ * Zobrazí alebo skryje globálny spinner.
+ * @param {boolean} show - True pre zobrazenie, false pre skrytie.
+ */
 export function toggleSpinner(show) {
     const spinner = document.getElementById('spinner-overlay');
     if (spinner) {
@@ -167,6 +145,12 @@ export function toggleSpinner(show) {
     }
 }
 
+/**
+ * Nastaví stav tlačidla (napr. počas načítavania).
+ * @param {HTMLElement} button - Element tlačidla.
+ * @param {string} state - Stav ('loading', 'reset').
+ * @param {string} text - Voliteľný text na zobrazenie.
+ */
 export function setButtonState(button, state, text = '') {
     if (!button) return;
 
@@ -198,6 +182,12 @@ export function setButtonState(button, state, text = '') {
     }
 }
 
+/**
+ * Vytvorí a zobrazí modálne okno so sledovaním priebehu.
+ * @param {number} totalItems - Celkový počet položiek na spracovanie.
+ * @param {string} titleText - Názov procesu.
+ * @returns {object} - Objekt s metódami increment() a close().
+ */
 export function createProgressTracker(totalItems, titleText) {
     let completed = 0;
 
@@ -234,43 +224,15 @@ export function createProgressTracker(totalItems, titleText) {
     };
 };
 
-export function initFileDropZones() {
-    const dropZones = document.querySelectorAll('.file-drop-zone');
-
-    dropZones.forEach(zone => {
-        const input = zone.querySelector('.file-input');
-        const prompt = zone.querySelector('.file-drop-zone__prompt');
-
-        const setActive = (active) => zone.classList.toggle('active', active);
-
-        zone.addEventListener('dragenter', (e) => { e.preventDefault(); if(!input.disabled) setActive(true); });
-        zone.addEventListener('dragover', (e) => { e.preventDefault(); if(!input.disabled) setActive(true); });
-        zone.addEventListener('dragleave', (e) => { e.preventDefault(); setActive(false); });
-        
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            if(input.disabled) return;
-            setActive(false);
-            if (e.dataTransfer.files.length) {
-                input.files = e.dataTransfer.files;
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        });
-
-        input.addEventListener('change', () => {
-            if (prompt) {
-                if (input.files.length > 0) {
-                    prompt.textContent = input.files[0].name;
-                    zone.classList.add('loaded');
-                } else {
-                    prompt.textContent = 'Presuňte súbor sem alebo kliknite';
-                    zone.classList.remove('loaded');
-                }
-            } else if (input.files.length > 0) {
-                 zone.classList.add('loaded');
-            } else {
-                 zone.classList.remove('loaded');
-            }
-        });
-    });
+/**
+ * Formátuje bajty na čitateľnú veľkosť (KB, MB).
+ * @param {number} bytes - Veľkosť v bajtoch.
+ * @returns {string} - Formátovaná veľkosť.
+ */
+export function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }

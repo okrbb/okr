@@ -1,5 +1,5 @@
 import { OKRESNE_URADY } from './config.js';
-import { initFileDropZones, showNotification, showErrorModal, showModal } from './ui.js';
+import { showNotification, showErrorModal, showModal, formatBytes } from './ui.js';
 import { agendaConfigs } from './agendaConfigFactory.js';
 import { DocumentProcessor } from './DocumentProcessor.js';
 import { startGuidedTour } from './tour.js';
@@ -11,22 +11,57 @@ const AppState = {
     spis: {},
     selectedAgendaKey: null,
     processor: null,
+    files: {}
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     // === DOM ELEMENTY ===
-    const agendaCards = document.querySelectorAll('.agenda-card');
     const ouSelect = document.getElementById('okresny-urad');
+    const agendaCards = document.querySelectorAll('.agenda-card');
     const dashboardContent = document.getElementById('dashboard-content');
+    
     const resetAppBtn = document.getElementById('reset-app-btn');
     const helpCenterBtn = document.getElementById('show-help-center');
     const resetTourBtn = document.getElementById('reset-tour-btn');
 
+    const sidebarSteps = {
+        step1: document.getElementById('sidebar-step-1'),
+        step2: document.getElementById('sidebar-step-2'),
+    };
 
     // === INICIALIZÁCIA ===
     populateOkresnyUradSelect();
+    initializeFromLocalStorage();
     startGuidedTour();
 
+    // ===================================
+    // RIADENIE STAVU UI
+    // ===================================
+
+    function updateUIState() {
+        const ouSelected = !!AppState.selectedOU;
+        sidebarSteps.step1.classList.toggle('is-completed', ouSelected);
+        sidebarSteps.step1.classList.toggle('is-active', !ouSelected);
+        document.getElementById('ou-select-wrapper').classList.toggle('is-locked', ouSelected);
+        ouSelect.disabled = ouSelected;
+
+        const agendaSelected = !!AppState.selectedAgendaKey;
+        sidebarSteps.step2.classList.toggle('is-active', ouSelected && !agendaSelected);
+        sidebarSteps.step2.classList.toggle('is-completed', ouSelected && agendaSelected);
+
+        const stepPreview = document.getElementById('workflow-step-preview');
+        const stepGenerate = document.getElementById('workflow-step-generate');
+
+        if (stepPreview && stepGenerate) {
+            const spisReady = AppState.spis[AppState.selectedAgendaKey];
+            const filesReady = AppState.selectedAgendaKey && agendaConfigs[AppState.selectedAgendaKey].dataInputs
+                                .every(input => AppState.files[input.id]);
+
+            stepPreview.classList.toggle('is-disabled', !filesReady);
+            stepGenerate.classList.toggle('is-disabled', !filesReady || !spisReady);
+        }
+    }
+    
     // =============================
     // HLAVNÁ LOGIKA A FUNKCIE
     // =============================
@@ -36,22 +71,23 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="welcome-message">
                 <i class="fas fa-hand-pointer"></i>
                 <h2>Vitajte v aplikácii</h2>
-                <p>Prosím, v paneli vľavo vyberte okresný úrad a následne agendu, s ktorou chcete pracovať.</p>
+                <p>Prosím, začnite výberom okresného úradu v paneli vľavo.</p>
             </div>`;
     }
 
     function resetApp() {
-        AppState.selectedOU = null;
-        AppState.okresData = null;
-        AppState.spis = {};
-        AppState.selectedAgendaKey = null;
-        AppState.processor = null;
+        localStorage.removeItem('krokr-lastOU');
+        localStorage.removeItem('krokr-lastAgenda');
+        Object.assign(AppState, {
+            selectedOU: null, okresData: null, spis: {}, 
+            selectedAgendaKey: null, processor: null, files: {}
+        });
         
         ouSelect.value = '';
         agendaCards.forEach(c => c.classList.remove('active'));
-        ouSelect.disabled = false;
-
+        
         showWelcomeMessage();
+        updateUIState();
         showNotification('Aplikácia bola resetovaná.', 'info');
     }
 
@@ -60,91 +96,112 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!agendaConfig) return;
 
         AppState.selectedAgendaKey = agendaKey;
-        
-        agendaCards.forEach(card => {
-            card.classList.toggle('active', card.dataset.agenda === agendaKey);
-        });
+        AppState.files = {}; // Reset files on new agenda selection
+        agendaCards.forEach(card => card.classList.toggle('active', card.dataset.agenda === agendaKey));
 
-        let fileInputsHTML = agendaConfig.dataInputs.map(inputConf => `
-            <div class="file-drop-zone">
-                <label for="${inputConf.id}">${inputConf.label} <i class="fas fa-check-circle file-icon-success"></i></label>
-                <input type="file" id="${inputConf.id}" accept=".xlsx,.xls" class="file-input">
-                <span class="file-drop-zone__prompt">Presuňte súbor sem alebo kliknite</span>
+        const fileInputsHTML = agendaConfig.dataInputs.map(inputConf => `
+            <div class="file-input-wrapper">
+                <div class="file-drop-zone" id="drop-zone-${inputConf.id}">
+                    <div class="file-drop-zone__prompt">
+                        <i class="fas fa-upload"></i>
+                        <p><strong>${inputConf.label}</strong></p>
+                        <span>Presuňte súbor sem alebo kliknite</span>
+                    </div>
+                    <div class="file-details">
+                        <div class="file-info">
+                            <i class="far fa-file-excel"></i>
+                            <div>
+                                <div class="file-name"></div>
+                                <div class="file-size"></div>
+                            </div>
+                            <button class="btn-remove-file" data-input-id="${inputConf.id}">&times;</button>
+                        </div>
+                    </div>
+                </div>
+                <input type="file" id="${inputConf.id}" accept=".xlsx,.xls" class="file-input" data-dropzone-id="drop-zone-${inputConf.id}">
             </div>
         `).join('');
 
-        let generatorsHTML = Object.keys(agendaConfig.generators).map(genKey => {
+        const generatorsHTML = Object.keys(agendaConfig.generators).map(genKey => {
             const genConf = agendaConfig.generators[genKey];
             const isXlsx = genConf.outputType === 'xlsx';
-            const buttonText = isXlsx ? 'Exportovať' : 'Generovať';
+            const buttonText = isXlsx ? 'Exportovať (.xlsx)' : 'Generovať (.docx)';
             return `
                 <div class="doc-box">
                     <h4>${genConf.title}</h4>
-                    <p class="doc-box__description">${isXlsx ? 'Tento export vygeneruje súbor .xlsx a nevyžaduje šablónu.' : 'Šablóna pre tento dokument sa načíta automaticky.'}</p>
-                    <button id="${genConf.buttonId}" class="btn btn--main" data-generator-key="${genKey}" disabled>${buttonText}</button>
+                    <p class="doc-box__description">${isXlsx ? 'Tento export vygeneruje súbor .xlsx.' : 'Generuje dokumenty na základe šablóny.'}</p>
+                    <button id="${genConf.buttonId}" class="btn btn--accent" data-generator-key="${genKey}" disabled><i class="fas fa-cogs"></i> ${buttonText}</button>
                 </div>`;
         }).join('');
 
         dashboardContent.innerHTML = `
-            <div class="card">
-                <div class="card__header">
-                    <h2>${agendaConfig.title}</h2>
-                    <div class="selection-summary"><strong>Úrad:</strong> ${AppState.okresData.Okresny_urad}</div>
+            <div class="content-header">
+                <h2>${agendaConfig.title}</h2>
+                <div class="selection-summary">
+                    <strong>Okresný úrad:</strong><br>${AppState.okresData.Okresny_urad}
                 </div>
-                
-                <h3 class="card__subheader">Číslo spisu</h3>
-                <div class="card__file-number" style="margin-bottom: 2rem;">
-                    <input type="text" id="spis-input" name="spis" placeholder="Zadajte číslo spisu" class="form-input">
-                    <button id="save-spis-btn" class="btn btn--secondary">Ulož</button>
-                </div>
-
-                <h3 class="card__subheader">Vstupné súbory</h3>
-                <div class="card__row" style="margin-bottom: 2rem;">${fileInputsHTML}</div>
-                
-                <h3 class="card__subheader">Náhľad spracovaných dát</h3>
-                <div id="preview-container" class="data-preview"></div>
-                
-                <h3 class="card__subheader" style="margin-top: 2rem;">Generovanie dokumentov</h3>
-                <div id="generators-container" class="card__group">${generatorsHTML}</div>
             </div>
-        `;
-
-        initFileDropZones();
+            <div class="workflow-container">
+                <section id="workflow-step-inputs" class="workflow-step">
+                    <h3><i class="fas fa-sign-in-alt"></i> Krok 1: Vstupné údaje</h3>
+                    <div class="input-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                        <div class="input-item">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Číslo spisu</label>
+                            <div class="spis-input-group">
+                                <input type="text" id="spis-input" class="form-input" placeholder="Napr. BB-OKR-2025/123456">
+                                <button id="save-spis-btn" class="btn btn--primary">Uložiť</button>
+                            </div>
+                        </div>
+                        <div class="input-item">
+                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Vstupné súbory</label>
+                             <div class="file-inputs-container" style="display: flex; flex-direction: column; gap: 1rem;">${fileInputsHTML}</div>
+                        </div>
+                    </div>
+                </section>
+                <section id="workflow-step-preview" class="workflow-step is-disabled">
+                    <h3><i class="fas fa-search"></i> Krok 2: Náhľad a kontrola dát</h3>
+                    <div id="preview-container" class="data-preview">
+                        <div class="empty-state-placeholder">
+                            <i class="fas fa-file-import"></i>
+                            <h4>Náhľad sa zobrazí po nahratí súborov</h4>
+                            <p>Začnite nahratím vstupných súborov v kroku č. 1.</p>
+                        </div>
+                    </div>
+                </section>
+                <section id="workflow-step-generate" class="workflow-step is-disabled">
+                    <h3><i class="fas fa-file-export"></i> Krok 3: Generovanie dokumentov</h3>
+                    <div id="generators-container" class="generators-grid">${generatorsHTML}</div>
+                </section>
+            </div>`;
+        
+        setupFileInputListeners();
         setupSpisInputListeners();
         initializeDocumentProcessor(agendaConfig);
+        setupGeneratorButtonListeners(agendaConfig);
+        updateUIState();
     }
     
     function initializeDocumentProcessor(baseConfig) {
         const fullConfig = {
             sectionPrefix: AppState.selectedAgendaKey,
             appState: AppState,
-            dataInputs: baseConfig.dataInputs.map(input => ({
-                elementId: input.id, 
-                stateKey: input.stateKey
-            })),
+            dataInputs: baseConfig.dataInputs,
             previewElementId: 'preview-container',
             dataProcessor: baseConfig.dataProcessor,
-            generators: baseConfig.generators
+            generators: baseConfig.generators,
+            onDataProcessed: () => updateUIState()
         };
-
         AppState.processor = new DocumentProcessor(fullConfig);
         AppState.processor.loadTemplates();
-
-        if (AppState.selectedAgendaKey === 'vp') {
-            loadPscFile();
-        }
+        if (AppState.selectedAgendaKey === 'vp') loadPscFile();
     }
     
     async function loadPscFile() {
         try {
             const response = await fetch('TEMP/PSC.xlsx');
-            if (!response.ok) throw new Error(`Súbor PSČ sa nepodarilo načítať. Status: ${response.status}`);
-            
+            if (!response.ok) throw new Error(`Súbor PSČ sa nepodarilo načítať: ${response.statusText}`);
             const arrayBuffer = await response.arrayBuffer();
-            AppState.processor.state.data = AppState.processor.state.data || {};
-            AppState.processor.state.data['psc'] = arrayBuffer;
-            
-            showNotification('Súbor PSČ bol automaticky načitaný.', 'info');
+            AppState.processor.state.data.psc = arrayBuffer;
             AppState.processor.checkAndProcessData();
         } catch (error) {
             showErrorModal({ message: 'Chyba pri automatickom načítaní súboru PSČ.', details: error.message });
@@ -154,21 +211,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // =============================
     // EVENT LISTENERS
     // =============================
-
     ouSelect.addEventListener('change', (e) => {
         const selectedValue = e.target.value;
-        AppState.selectedOU = selectedValue;
-        AppState.okresData = OKRESNE_URADY[selectedValue] || null;
-
-        if (selectedValue) {
-            showNotification(`Vybraný okresný úrad: ${AppState.okresData.Okresny_urad}`, 'success');
-            document.dispatchEvent(new CustomEvent('ou-selected', { detail: AppState }));
-            if (AppState.selectedAgendaKey) {
-                renderAgendaView(AppState.selectedAgendaKey);
-            }
-        } else {
+        if (!selectedValue) {
             resetApp();
+            return;
         }
+        AppState.selectedOU = selectedValue;
+        AppState.okresData = OKRESNE_URADY[selectedValue];
+        localStorage.setItem('krokr-lastOU', selectedValue);
+        showNotification(`Vybraný OÚ: ${AppState.okresData.Okresny_urad}`, 'success');
+        if (AppState.selectedAgendaKey) {
+            renderAgendaView(AppState.selectedAgendaKey);
+        }
+        updateUIState();
     });
 
     agendaCards.forEach(card => {
@@ -178,220 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             const agendaKey = card.dataset.agenda;
-            ouSelect.disabled = true;
+            localStorage.setItem('krokr-lastAgenda', agendaKey);
             renderAgendaView(agendaKey);
         });
-    });
-
-    helpCenterBtn.addEventListener('click', () => {
-        const helpCenterContent = `
-            <div class="modal-tabs">
-                <button class="modal-tab active" data-tab="faq"><i class="fas fa-question-circle"></i> Časté otázky (FAQ)</button>
-                <button class="modal-tab" data-tab="guides"><i class="fas fa-book-open"></i> Sprievodcovia</button>
-                <button class="modal-tab" data-tab="troubleshooting"><i class="fas fa-wrench"></i> Riešenie problémov</button>
-            </div>
-            
-            <div class="modal-tab-content active" id="tab-faq">
-                <div class="faq-item">
-                    <h4>Prečo je tlačidlo "Generovať" neaktívne?</h4>
-                    <p>Tlačidlo sa aktivuje až po splnení všetkých potrebných krokov:
-                        <ol style="margin-left: 20px; margin-top: 0.5rem;">
-                            <li>Musí byť vybraný okresný úrad.</li>
-                            <li>Musí byť zvolená agenda.</li>
-                            <li>Musí byť zadané číslo spisu.</li>
-                            <li>Musí byť nahratý platný vstupný .xlsx súbor.</li>
-                        </ol>
-                    </p>
-                </div>
-                <div class="faq-item">
-                     <h4>Rožlišuje aplikácia §§ pri generovaní rozhodnutí?</h4>
-                    <p>Áno, pri rozhodnutiach pre vecné prostriedky a pre ubytovanie aplikácia automaticky vkladá správny "ods. a písm." z § 18 zákona č. 319/2002 Z. z. Na základe prítomnosti lomky "/" v IČO(RČ) alebo prázdnej bunky rozlišuje, či ide o fyzickú osobu (FO - prázdna bunka alebo číslo s /) alebo právnickú osobu (PO/FOP - číslo bez /).</p>
-                    <ul style="margin-left: 20px; margin-top: 0.5rem;">
-                        <li><b>Pre PO, FOP:</b> ods. 1 písm. d)</li>
-                        <li><b>Pre FO:</b> ods. 3 písm. b)</li>
-                    </ul>
-                </div>
-                <div class="faq-item">
-                    <h4>V akom tvare sa zadáva číslo spisu?</h4> 
-                    <p>Číslo spisu zadávate v tvare: kód okresu, kód odboru, rok, číslo spisu. Napr.: BB-OKR-2025/123456.</p>
-                </div>
-                <div class="faq-item">
-                    <h4>Môžem upraviť vygenerované dokumenty?</h4> 
-                    <p>Áno, všetky vygenerované .docx súbory sú plne editovateľné v textovom editore (napr. MS Word).</p>
-                </div>
-            </div>
-
-            <div class="modal-tab-content" id="tab-guides">
-                <p>Tu nájdete presné požiadavky na štruktúru vstupných .xlsx súborov pre každú agendu. <strong>Názvy stĺpcov musia presne sedieť.</strong></p>
-                <div class="accordion">
-                    <div class="accordion-item">
-                        <div class="accordion-header"><i class="fas fa-truck"></i> Vecné prostriedky (VP)</div>
-                        <div class="accordion-content">
-                            <p>Táto agenda vyžaduje špecifickú štruktúru s <strong>dvojriadkovou hlavičkou</strong>.</p>
-                            <h5>Hlavná hlavička (prvý riadok):</h5>
-                            <table class="help-table">
-                                <thead><tr><th>Povinný stĺpec</th><th>Popis</th></tr></thead>
-                                <tbody>
-                                    <tr><td><code>P.Č.</code></td><td>Poradové číslo. Kľúčový stĺpec, ktorý musí byť prítomný.</td></tr>
-                                    <tr><td><code>DODÁVATEĽ</code></td><td>Názov subjektu (firmy alebo osoby).</td></tr>
-                                    <tr><td><code>OKRES</code></td><td>Okres subjektu.</td></tr>
-                                    <tr><td><code>PČRD</code></td><td>PČRD (napr. 12345-M).</td></tr>
-                                    <tr><td><code>IČO</code></td><td>IČO firmy alebo rodné číslo osoby (formát s lomkou, napr. 123456/7890).</td></tr>
-                                    <tr><td><code>TOVÁRENSKÁ ZNAČKA</code></td><td>Značka vozidla (napr. Škoda).</td></tr>
-                                    <tr><td><code>DRUH KAROSÉRIE</code></td><td>Typ karosérie (napr. Combi).</td></tr>
-                                    <tr><td><code>EČV</code></td><td>Evidenčné číslo vozidla.</td></tr>
-                                    <tr><td><code>ÚTVAR</code></td><td>Príslušný útvar.</td></tr>
-                                    <tr><td><code>MIESTO DODANIA</code></td><td>Miesto, kam má byť prostriedok dodaný.</td></tr>
-                                </tbody>
-                            </table>
-                            <h5>Pod-hlavička (druhý riadok, priamo pod hlavnou hlavičkou):</h5>
-                            <table class="help-table">
-                                <thead><tr><th>Povinný stĺpec (pod stĺpcom DODÁVATEĽ)</th><th>Popis</th></tr></thead>
-                                <tbody>
-                                    <tr><td><code>ULICA</code></td><td>Ulica sídla/bydliska subjektu.</td></tr>
-                                    <tr><td><code>Č. POPISNÉ</code></td><td>Popisné číslo.</td></tr>
-                                    <tr><td><code>MESTO (OBEC)</code></td><td>Mesto alebo obec.</td></tr>
-                                </tbody>
-                            </table>
-                            <a href="/public/templates/sablona_vp.xlsx" class="btn btn--secondary" download><i class="fas fa-download"></i> Stiahnuť šablónu</a>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <div class="accordion-header"><i class="fas fa-briefcase"></i> Pracovná povinnosť (PP)</div>
-                        <div class="accordion-content">
-                            <p>Hlavička tabuľky musí začínať v <strong>stĺpci C</strong>. Stĺpce A a B sú ignorované.</p>
-                            <table class="help-table">
-                                <thead><tr><th>Povinný stĺpec</th><th>Popis</th></tr></thead>
-                                <tbody>
-                                    <tr><td><code>Por. číslo</code></td><td>Poradové číslo.</td></tr>
-                                    <tr><td><code>Titul</code></td><td>Titul osoby (nepovinné).</td></tr>
-                                    <tr><td><code>Meno</code></td><td>Meno osoby.</td></tr>
-                                    <tr><td><code>Priezvisko</code></td><td>Priezvisko osoby.</td></tr>
-                                    <tr><td><code>Miesto pobytu / Adresa trvalého pobytu</code></td><td>Kompletná adresa vrátane PSČ a obce, oddelená čiarkou.</td></tr>
-                                    <tr><td><code>Rodné číslo</code></td><td>Rodné číslo osoby.</td></tr>
-                                    <tr><td><code>Miesto nástupu k vojenskému útvaru</code></td><td>Textové pole s miestom nástupu.</td></tr>
-                                </tbody>
-                            </table>
-                            <a href="/public/templates/sablona_pp.xlsx" class="btn btn--secondary" download><i class="fas fa-download"></i> Stiahnuť šablónu</a>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <div class="accordion-header"><i class="fas fa-bed"></i> Ubytovanie (UB)</div>
-                        <div class="accordion-content">
-                            <table class="help-table">
-                                <thead><tr><th>Povinný stĺpec</th><th>Popis</th></tr></thead>
-                                <tbody>
-                                    <tr><td><code>Por. č.</code></td><td>Poradové číslo.</td></tr>
-                                    <tr><td><code>obchodné meno alebo názov alebo meno a priezvisko</code></td><td>Názov subjektu poskytujúceho ubytovanie.</td></tr>
-                                    <tr><td><code>sídlo alebo miesto pobytu</code></td><td>Adresa subjektu, oddelená čiarkou.</td></tr>
-                                    <tr><td><code>IČO alebo rodné číslo</code></td><td>Identifikátor subjektu.</td></tr>
-                                    <tr><td><code>názov (identifikácia) nehnuteľnosti</code></td><td>Popis nehnuteľnosti.</td></tr>
-                                    <tr><td><code>adresa, na ktorej sa nehnuteľnosť nachádza</code></td><td>Adresa ubytovacieho zariadenia.</td></tr>
-                                    <tr><td><code>názov žiadateľa</code></td><td>Subjekt, pre ktorý sa ubytovanie poskytuje.</td></tr>
-                                    <tr><td><code>adresa žiadateľa</code></td><td>Adresa žiadateľa.</td></tr>
-                                </tbody>
-                            </table>
-                            <a href="/public/templates/sablona_ub.xlsx" class="btn btn--secondary" download><i class="fas fa-download"></i> Stiahnuť šablónu</a>
-                        </div>
-                    </div>
-                    
-                    <div class="accordion-item">
-                        <div class="accordion-header"><i class="fas fa-envelopes-bulk"></i> Doručovatelia (DR)</div>
-                        <div class="accordion-content">
-                            <table class="help-table">
-                                <thead><tr><th>Povinný stĺpec</th><th>Popis</th></tr></thead>
-                                <tbody>
-                                    <tr><td><code>Por. č.</code></td><td>Poradové číslo.</td></tr>
-                                    <tr><td><code>Titul, meno a priezvisko</code></td><td>Celé meno doručovateľa.</td></tr>
-                                    <tr><td><code>adresa trvalého pobytu</code></td><td>Kompletná adresa vrátane PSČ a obce, oddelená čiarkou.</td></tr>
-                                    <tr><td><code>rodné číslo</code></td><td>Rodné číslo doručovateľa.</td></tr>
-                                </tbody>
-                            </table>
-                            <a href="/public/templates/sablona_dr.xlsx" class="btn btn--secondary" download><i class="fas fa-download"></i> Stiahnuť šablónu</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-tab-content" id="tab-troubleshooting">
-                <div class="troubleshooting-item">
-                    <h4>Chybové hlásenie: "Nenašiel sa riadok s hlavičkou..."</h4>
-                    <p><strong>Príčina:</strong> Aplikácia vo vašom .xlsx súbore nenašla presný názov stĺpca, ktorý potrebuje na spracovanie dát.</p>
-                    <p><strong>Riešenie:</strong> Otvorte si váš súbor a skontrolujte, či názvy stĺpcov presne zodpovedajú šablóne v sekcii "Sprievodcovia agendami". Dávajte pozor na preklepy, medzery navyše alebo diakritiku.</p>
-                </div>
-            </div>
-        `;
-
-        const titleHTML = `
-            <div class="help-center-header">
-                <i class="fas fa-life-ring"></i>
-                <div class="title-group">
-                    <h3>Centrum nápovedy</h3>
-                    <span>Všetko, čo potrebujete vedieť na jednom mieste.</span>
-                </div>
-            </div>`;
-
-        showModal({
-            title: titleHTML,
-            content: helpCenterContent
-        });
-    });
-
-    resetTourBtn.addEventListener('click', () => {
-        localStorage.removeItem('krokr-tour-completed');
-        showNotification('Sprievodca bol resetovaný a spustí sa.', 'info');
-        startGuidedTour();
-    });
-    
-    document.addEventListener('click', (e) => {
-        if (e.target.matches('.help-icon') && e.target.dataset.helpTopic === 'agenda-info') {
-            const titleHTML = `
-                <div class="help-center-header">
-                    <i class="fas fa-info-circle"></i>
-                    <div class="title-group">
-                        <h3>Popis Agend</h3>
-                        <span>Prehľad dostupných agend a ich využitie.</span>
-                    </div>
-                </div>`;
-            
-            showModal({
-                title: titleHTML,
-                content: `
-                    <ul class="agenda-info-list">
-                        <li>
-                            <i class="fas fa-truck"></i>
-                            <div>
-                                <strong>Vecné prostriedky (VP)</strong>
-                                <p>Generovanie rozhodnutí a súvisiacich dokumentov pre subjekty poskytujúce vecné prostriedky (napr. vozidlá, techniku) na plnenie úloh obrany štátu v čase vojny alebo vojnového stavu.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <i class="fas fa-briefcase"></i>
-                            <div>
-                                <strong>Pracovná povinnosť (PP)</strong>
-                                <p>Generovanie rozhodnutí a súvisiacich dokumentov pre subjekty, ktoré sú povinné plniť pracovnú povinnosť v čase vojny alebo vojnového stavu pre potreby obrany štátu.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <i class="fas fa-bed"></i>
-                            <div>
-                                <strong>Ubytovanie (UB)</strong>
-                                <p>Spracovanie podkladov a rozhodnutí pre subjekty povinné poskytnúť v čase vojny alebo vojnového stavu ubytovanie príslušníkom ozbrojených síl.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <i class="fas fa-envelopes-bulk"></i>
-                            <div>
-                                <strong>Doručovatelia (DR)</strong>
-                                <p>Agenda pre správu a generovanie dokumentov pre osoby určené na doručovanie písomností.</p>
-                            </div>
-                        </li>
-                    </ul>
-                `
-            });
-        }
     });
 
     resetAppBtn.addEventListener('click', () => {
@@ -400,28 +245,216 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    if (resetTourBtn) {
+        resetTourBtn.addEventListener('click', () => {
+            localStorage.removeItem('krokr-tour-completed');
+            startGuidedTour();
+        });
+    }
+
+    if (helpCenterBtn) {
+        helpCenterBtn.addEventListener('click', showHelpCenterModal);
+    }
+
+    // ==================================
+    // FUNKCIE PRE NÁPOVEDU A LISTENERY
+    // ==================================
+
+    /**
+     * **REDDIZAJN CENTRA NÁPOVEDY:** Nová funkcia s tab-based layoutom.
+     */
+    function showHelpCenterModal() {
+        const title = `
+            <div class="help-center-header">
+                <i class="fas fa-life-ring"></i>
+                <div class="title-group">
+                    <h3>Centrum nápovedy</h3>
+                    <span>Všetko, čo potrebujete vedieť na jednom mieste.</span>
+                </div>
+            </div>`;
+
+        const content = `
+            <div class="modal-tabs-container">
+                <div class="modal-tab active" data-tab="faq"><i class="fas fa-question-circle"></i> Časté otázky</div>
+                <div class="modal-tab" data-tab="troubleshooting"><i class="fas fa-wrench"></i> Riešenie problémov</div>
+            </div>
+
+            <div class="modal-tab-content-wrapper">
+                <div id="tab-faq" class="modal-tab-content active">
+                    <div class="accordion">
+                        <div class="accordion-item">
+                            <div class="accordion-header">Prečo sú tlačidlá "Generovať" neaktívne?</div>
+                            <div class="accordion-content">
+                                Tlačidlá sa automaticky aktivujú, keď sú splnené všetky nasledujúce podmienky:
+                                <ul>
+                                    <li>Je vybraný okresný úrad.</li>
+                                    <li>Je zvolená agenda.</li>
+                                    <li>Je zadané a uložené <strong>číslo spisu</strong>.</li>
+                                    <li>Je nahratý a úspešne spracovaný <strong>vstupný .xlsx súbor</strong>.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <div class="accordion-header">Ako aplikácia aplikuje §§ pri generovaní rozhodnutí?</div>
+                            <div class="accordion-content">
+                                Pri rozhodnutiach pre vecné prostriedky a pre ubytovanie aplikácia automaticky vkladá správny odsek a písmeno Zákona č. 319/2002 Z. z. na základe prítomnosti lomky "/" v IČO(RČ) alebo prázdnej bunky.
+                                <ul>
+                                    <li><b>Pre PO, FOP:</b> ods. 1 písm. d)</li>
+                                    <li><b>Pre FO:</b> ods. 3 písm. b)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <div class="accordion-header">Čo robiť, ak sa zobrazí chyba pri spracovaní súboru?</div>
+                            <div class="accordion-content">
+                                Najčastejšou príčinou je nesprávny formát vstupného .xlsx súboru. Skontrolujte prosím, či:
+                                <ul>
+                                    <li>Súbor obsahuje všetky požadované stĺpce.</li>
+                                    <li>Názvy stĺpcov presne zodpovedajú predlohe.</li>
+                                    <li>Dáta v súbore sú v očakávanom formáte a bunky nie sú zlúčené.</li>
+                                </ul>
+                                Pre viac detailov si pozrite chybové hlásenie, ktoré sa zobrazí, alebo sekciu "Riešenie problémov".
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-troubleshooting" class="modal-tab-content">
+                    <div class="accordion">
+                         <div class="accordion-item">
+                            <div class="accordion-header">Chyba: "Nenašiel sa riadok s hlavičkou..."</div>
+                            <div class="accordion-content">
+                                Táto chyba znamená, že aplikácia vo vašom .xlsx súbore nenašla očakávané názvy stĺpcov. Uistite sa, že stĺpce v súbore, ktorý nahrávate, majú presne rovnaké názvy ako v pripravenej predlohe pre danú agendu. Dajte pozor na preklepy, medzery navyše alebo skryté znaky.
+                            </div>
+                        </div>
+                         <div class="accordion-item">
+                            <div class="accordion-header">Náhľad dát zobrazuje nezmyselné hodnoty.</div>
+                            <div class="accordion-content">
+                                Skontrolujte, či vo vašom .xlsx súbore nemáte zlúčené bunky. Aplikácia vyžaduje, aby každá informácia bola vo vlastnej, samostatnej bunke. Taktiež sa uistite, že dáta začínajú hneď pod riadkom s hlavičkou a nepredchádzajú im žiadne prázdne riadky.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        showModal({ title: title, content: content });
+        // Pridanie listenera pre tlačidlo vnútri modálneho okna
+        const restartTourBtn = document.getElementById('restart-tour-from-modal');
+        if(restartTourBtn) {
+            restartTourBtn.addEventListener('click', () => {
+                document.querySelector('.modal-close-btn')?.click(); // Zavrie modálne okno
+                setTimeout(() => {
+                    localStorage.removeItem('krokr-tour-completed');
+                    startGuidedTour();
+                }, 300); // Malé oneskorenie kvôli animácii zatvorenia
+            });
+        }
+    }
+
+    function setupGeneratorButtonListeners(agendaConfig) {
+        if (!agendaConfig.generators) return;
+
+        Object.keys(agendaConfig.generators).forEach(genKey => {
+            const genConf = agendaConfig.generators[genKey];
+            const button = document.getElementById(genConf.buttonId);
+            if (button) {
+                button.addEventListener('click', () => {
+                    if (!AppState.processor) return;
+                    switch (genConf.type) {
+                        case 'row': AppState.processor.generateRowByRow(genKey); break;
+                        case 'batch': AppState.processor.generateInBatches(genKey); break;
+                        case 'groupBy': AppState.processor.generateByGroup(genKey); break;
+                        default: showErrorModal({ message: `Neznámy typ generátora: ${genConf.type}` });
+                    }
+                });
+            }
+        });
+    }
+
+    function setupFileInputListeners() {
+        const agendaConfig = agendaConfigs[AppState.selectedAgendaKey];
+        if (!agendaConfig) return;
+
+        document.querySelectorAll('.file-input').forEach(input => {
+            const dropZone = document.getElementById(input.dataset.dropzoneId);
+            const fileNameEl = dropZone.querySelector('.file-name');
+            const fileSizeEl = dropZone.querySelector('.file-size');
+            const inputConf = agendaConfig.dataInputs.find(conf => conf.id === input.id);
+            const stateKey = inputConf ? inputConf.stateKey : null;
+
+            const handleFile = (file) => {
+                if (!file || !stateKey) return;
+                AppState.files[input.id] = file;
+                dropZone.classList.add('loaded');
+                fileNameEl.textContent = file.name;
+                fileSizeEl.textContent = formatBytes(file.size);
+                if (AppState.processor) {
+                    AppState.processor.processFile(file, stateKey);
+                }
+            };
+            
+            input.addEventListener('change', (e) => handleFile(e.target.files[0]));
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('active'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('active');
+                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+            });
+        });
+
+        document.querySelectorAll('.btn-remove-file').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const inputId = e.currentTarget.dataset.inputId;
+                const input = document.getElementById(inputId);
+                const dropZone = document.getElementById(input.dataset.dropzoneId);
+                
+                delete AppState.files[inputId];
+                input.value = '';
+                dropZone.classList.remove('loaded');
+                
+                if (AppState.processor) {
+                    const inputConf = agendaConfigs[AppState.selectedAgendaKey]?.dataInputs.find(i => i.id === inputId);
+                    const stateKey = inputConf ? inputConf.stateKey : null;
+                    if (stateKey) delete AppState.processor.state.data[stateKey];
+                    
+                    AppState.processor.state.processedData = null;
+                    
+                    // === ZMENA: Zobrazenie "empty state" po vymazaní súboru ===
+                    const previewContainer = document.getElementById('preview-container');
+                    if (previewContainer) {
+                        previewContainer.innerHTML = `
+                            <div class="empty-state-placeholder">
+                                <i class="fas fa-eye-slash"></i>
+                                <h4>Náhľad dát bol vymazaný</h4>
+                                <p>Prosím, nahrajte vstupné súbory na zobrazenie náhľadu.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    AppState.processor.checkAllButtonsState();
+                }
+                updateUIState();
+            });
+        });
+    }
+
     function setupSpisInputListeners() {
         const spisInput = document.getElementById('spis-input');
         const saveSpisBtn = document.getElementById('save-spis-btn');
         if (!spisInput || !saveSpisBtn) return;
-
+        
         if (AppState.spis[AppState.selectedAgendaKey]) {
             spisInput.value = AppState.spis[AppState.selectedAgendaKey];
         }
 
         const saveFileNumber = () => {
             const value = spisInput.value.trim();
-            const key = AppState.selectedAgendaKey;
-
-            if (value && key) {
-                const newValue = value === "0" ? " " : value;
-                if (AppState.spis[key] !== newValue) {
-                    AppState.spis[key] = newValue;
-                    showNotification(`Číslo spisu "${AppState.spis[key]}" pre agendu ${key.toUpperCase()} bolo uložené.`, 'success');
-                    if (AppState.processor) {
-                        AppState.processor.checkAllButtonsState();
-                    }
-                }
+            if (value) {
+                AppState.spis[AppState.selectedAgendaKey] = value;
+                showNotification(`Číslo spisu bolo uložené.`, 'success');
+                AppState.processor?.checkAllButtonsState();
+                updateUIState();
             }
         };
 
@@ -429,12 +462,26 @@ document.addEventListener('DOMContentLoaded', () => {
         spisInput.addEventListener('blur', saveFileNumber);
         spisInput.addEventListener('keyup', (e) => e.key === 'Enter' && saveFileNumber());
     }
+
+    function initializeFromLocalStorage() {
+        const lastOU = localStorage.getItem('krokr-lastOU');
+        if (lastOU) {
+            ouSelect.value = lastOU;
+            ouSelect.dispatchEvent(new Event('change'));
+            
+            const lastAgenda = localStorage.getItem('krokr-lastAgenda');
+            if (lastAgenda) {
+                setTimeout(() => {
+                    const agendaCard = document.querySelector(`.agenda-card[data-agenda="${lastAgenda}"]`);
+                    if (agendaCard) agendaCard.click();
+                }, 100);
+            }
+        }
+    }
 });
 
-// === POMOCNÉ FUNKCIE ===
 function populateOkresnyUradSelect() {
     const select = document.getElementById('okresny-urad');
-    if (!select) return;
     Object.keys(OKRESNE_URADY).forEach(key => {
         const option = document.createElement('option');
         option.value = key;
