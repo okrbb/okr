@@ -332,9 +332,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: 'Popis Agend',
                 content: `
                     <ul style="list-style-position: inside;">
-                        <li style="margin-bottom: 1em;"><strong>Vecné prostriedky (VP):</strong> Generovanie rozhodnutí a súvisiacich dokumentov pre subjekty poskytujúce vecné prostriedky (napr. vozidlá, techniku).</li>
-                        <li style="margin-bottom: 1em;"><strong>Pracovná povinnosť (PP):</strong> Vytváranie povolávacích rozkazov a dokumentov pre osoby, ktorým je určená pracovná povinnosť v čase krízovej situácie.</li>
-                        <li style="margin-bottom: 1em;"><strong>Ubytovanie (UB):</strong> Spracovanie podkladov a rozhodnutí pre subjekty a osoby poskytujúce ubytovacie kapacity.</li>
+                        <li style="margin-bottom: 1em;"><strong>Vecné prostriedky (VP):</strong> Generovanie rozhodnutí a súvisiacich dokumentov pre subjekty poskytujúce vecné prostriedky (napr. vozidlá, techniku) na plnenie úloh obrany štátu v čase vojny alebo vojnového stavu.</li>
+                        <li style="margin-bottom: 1em;"><strong>Pracovná povinnosť (PP):</strong> Generovanie rozhodnutí a súvisiacich dokumentov pre subjekty, ktoré sú povinné plniť pracovnú povinnosť v čase vojny alebo vojnového stavu pre potreby obrany štátu.</li>
+                        <li style="margin-bottom: 1em;"><strong>Ubytovanie (UB):</strong> Spracovanie podkladov a rozhodnutí pre subjekty povinné poskytnúť v čase vojny alebo vojnového stavu ubytovanie príslušníkom ozbrojených síl.</li>
                         <li style="margin-bottom: 1em;"><strong>Doručovatelia (DR):</strong> Agenda pre správu a generovanie dokumentov pre osoby určené na doručovanie písomností.</li>
                     </ul>
                 `
