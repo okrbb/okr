@@ -26,12 +26,9 @@ export function startGuidedTour() {
     tour.addStep({
         id: 'step1-ou',
         title: `
-            <div class="tour-step-header">
-                <i class="fas fa-route"></i>
-                <div class="title-group">
-                    <h3>Krok 1/4: Výber úradu</h3>
-                    <span>Začnite výberom pracoviska</span>
-                </div>
+            <div class="tour-header">
+                <span class="tour-step-indicator">Krok 1 / 4</span>
+                <h3>Výber úradu</h3>
             </div>`,
         text: 'Vitajte! Najprv vyberte váš okresný úrad. Tým sa načítajú správne údaje o vašom pracovisku (adresa, vedúci a pod.).',
         attachTo: {
@@ -47,12 +44,9 @@ export function startGuidedTour() {
     tour.addStep({
         id: 'step2-agenda',
         title: `
-            <div class="tour-step-header">
-                <i class="fas fa-route"></i>
-                <div class="title-group">
-                    <h3>Krok 2/4: Výber agendy</h3>
-                    <span>Zvoľte typ dokumentov</span>
-                </div>
+            <div class="tour-header">
+                <span class="tour-step-indicator">Krok 2 / 4</span>
+                <h3>Výber agendy</h3>
             </div>`,
         text: 'Výborne. Teraz si vyberte agendu, s ktorou chcete pracovať. Každá karta predstavuje iný typ dokumentov na generovanie.',
         attachTo: {
@@ -72,12 +66,9 @@ export function startGuidedTour() {
     tour.addStep({
         id: 'step3-content',
         title: `
-            <div class="tour-step-header">
-                <i class="fas fa-route"></i>
-                <div class="title-group">
-                    <h3>Krok 3/4: Pracovná plocha</h3>
-                    <span>Hlavný priestor pre vašu prácu</span>
-                </div>
+            <div class="tour-header">
+                <span class="tour-step-indicator">Krok 3 / 4</span>
+                <h3>Pracovná plocha</h3>
             </div>`,
         text: 'Po výbere agendy sa v tejto časti zobrazia všetky potrebné nástroje na nahrávanie súborov a generovanie dokumentov.',
         attachTo: {
@@ -89,21 +80,17 @@ export function startGuidedTour() {
             secondary: true,
             action: tour.back
         }, {
-            text: 'Ďalej', // ZMENA: Toto tlačidlo teraz vedie na ďalší krok
+            text: 'Ďalej',
             action: tour.next
         }]
     });
 
-    // --- NOVÝ KROK PRE OVLÁDACIE TLAČIDLÁ ---
     tour.addStep({
         id: 'step4-footer',
         title: `
-            <div class="tour-step-header">
-                <i class="fas fa-route"></i>
-                <div class="title-group">
-                    <h3>Krok 4/4: Nástroje a pomoc</h3>
-                    <span>Rýchly prístup k funkciám</span>
-                </div>
+            <div class="tour-header">
+                <span class="tour-step-indicator">Krok 4 / 4</span>
+                <h3>Nástroje a pomoc</h3>
             </div>`,
         text: 'Tu nájdete užitočné nástroje: Centrum notifikácií, Nápovedu, opätovné spustenie tohto sprievodcu a možnosť resetovať celú aplikáciu.',
         attachTo: {
