@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krízové riadenie OKR - Dashboard</title>
+    <title>OKR - Dashboard</title>
     <link rel="icon" href="css/favicon.png" type="image/x-icon">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -48,9 +48,25 @@
             </ul>
             
             <div class="sidebar-footer">
-                <button id="show-help-center" class="btn btn--secondary"><i class="fas fa-life-ring"></i> Centrum nápovedy</button>
-                <button id="reset-tour-btn" class="btn btn--secondary"><i class="fas fa-route"></i> Zobraziť sprievodcu</button>
-                <button id="reset-app-btn" class="btn btn--secondary"><i class="fas fa-sync-alt"></i> Resetovať aplikáciu</button>
+                <div class="notification-bell-wrapper" data-tooltip="Notifikácie">
+                    <button id="notification-bell-btn" class="btn btn--secondary">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" style="display: none;">0</span>
+                    </button>
+                    <div id="notification-center-panel" class="notification-center-panel">
+                        <div class="notification-panel-header">
+                            <h4>Notifikácie</h4>
+                            <button id="clear-notifications-btn">Vymazať všetky</button>
+                        </div>
+                        <ul id="notification-list" class="notification-list">
+                            <li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <button id="show-help-center" class="btn btn--secondary" data-tooltip="Centrum nápovedy"><i class="fas fa-life-ring"></i></button>
+                <button id="reset-tour-btn" class="btn btn--secondary" data-tooltip="Zobraziť sprievodcu"><i class="fas fa-route"></i></button>
+                <button id="reset-app-btn" class="btn btn--secondary" data-tooltip="Resetovať aplikáciu"><i class="fas fa-sync-alt"></i></button>
             </div>
         </aside>
 
