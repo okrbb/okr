@@ -60,7 +60,9 @@ export function showModal({ title, content, pages = [] }) {
         <div class="modal-overlay active">
             <div class="modal-content">
                 <button class="modal-close-btn">&times;</button>
-                <h3>${title}</h3>
+                <div class="modal-header">
+                    ${title}
+                </div>
                 <div class="modal-body">${content}</div>
                 ${pages.length > 0 ? `
                 <div class="modal-navigation">
@@ -86,7 +88,6 @@ export function showModal({ title, content, pages = [] }) {
         }
     });
 
-    // --- Logika pre ZÁLOŽKY (TABY) ---
     const tabs = overlay.querySelectorAll('.modal-tab');
     const tabContents = overlay.querySelectorAll('.modal-tab-content');
 
@@ -95,6 +96,7 @@ export function showModal({ title, content, pages = [] }) {
             tab.addEventListener('click', () => {
                 tabs.forEach(t => t.classList.remove('active'));
                 tabContents.forEach(c => c.classList.remove('active'));
+                
                 tab.classList.add('active');
                 const contentId = `tab-${tab.dataset.tab}`;
                 const activeContent = overlay.querySelector(`#${contentId}`);
@@ -103,24 +105,21 @@ export function showModal({ title, content, pages = [] }) {
         });
     }
 
-    // --- NOVÁ ČASŤ: LOGIKA PRE AKORDEÓN ---
     const accordionItems = overlay.querySelectorAll('.accordion-item');
     if (accordionItems.length > 0) {
         accordionItems.forEach(item => {
             const header = item.querySelector('.accordion-header');
             header.addEventListener('click', () => {
-                // Zavrie ostatné otvorené položky
+                const isActive = item.classList.contains('active');
                 accordionItems.forEach(otherItem => {
-                    if (otherItem !== item && otherItem.classList.contains('active')) {
-                        otherItem.classList.remove('active');
-                    }
+                    otherItem.classList.remove('active');
                 });
-                // Otvorí/zavrie aktuálnu
-                item.classList.toggle('active');
+                if (!isActive) {
+                    item.classList.add('active');
+                }
             });
         });
     }
-    // --- KONIEC NOVEJ ČASTI ---
 
     if (pages.length > 0) {
         renderPage(currentPage);
@@ -140,8 +139,9 @@ export function showModal({ title, content, pages = [] }) {
 }
 
 export function showErrorModal({ title = 'Chyba', message, details = '' }) {
+    const titleHTML = `<div class="help-center-header"><i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i><h3>${title}</h3></div>`;
     const content = `<p>${message}</p>${details ? `<pre><code>${details}</code></pre>` : ''}`;
-    showModal({ title, content });
+    showModal({ title: titleHTML, content });
 }
 
 
@@ -203,7 +203,6 @@ export function createProgressTracker(totalItems, titleText) {
 
     const modalContent = `
         <div id="progress-modal">
-            <h3>${titleText}</h3>
             <div class="global-progress-bar" style="width:100%; height:20px; background-color:#eee; border-radius:10px; overflow:hidden;">
                 <div class="global-progress-fill" style="width:0%; height:100%; background-color:var(--primary-color); transition:width 0.2s;"></div>
             </div>
@@ -211,7 +210,8 @@ export function createProgressTracker(totalItems, titleText) {
             <div class="global-progress-percentage" style="text-align:center; font-weight:bold; font-size:1.2em;">0%</div>
         </div>
     `;
-    showModal({ title: 'Generovanie...', content: modalContent });
+    const titleHTML = `<div class="help-center-header"><i class="fas fa-cogs"></i><h3>${titleText}</h3></div>`;
+    showModal({ title: titleHTML, content: modalContent });
 
     const modal = document.getElementById('progress-modal');
     const fill = modal.querySelector('.global-progress-fill');

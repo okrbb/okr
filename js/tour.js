@@ -22,11 +22,18 @@ export function startGuidedTour() {
         }
     });
 
-    // Definícia krokov sprievodcu
+    // Definícia krokov sprievodcu s novou, konzistentnou hlavičkou
     tour.addStep({
         id: 'step1-ou',
-        title: 'Krok 1: Výber úradu',
-        text: 'Vitajte! Začnite výberom vášho okresného úradu. Tým sa načítajú správne údaje o vašom pracovisku (adresa, vedúci oddelenia atď.).',
+        title: `
+            <div class="tour-step-header">
+                <i class="fas fa-route"></i>
+                <div class="title-group">
+                    <h3>Krok 1/3: Výber úradu</h3>
+                    <span>Začnite výberom pracoviska</span>
+                </div>
+            </div>`,
+        text: 'Vitajte! Najprv vyberte váš okresný úrad. Tým sa načítajú správne údaje o vašom pracovisku (adresa, vedúci a pod.).',
         attachTo: {
             element: '.select-item',
             on: 'right'
@@ -39,8 +46,15 @@ export function startGuidedTour() {
 
     tour.addStep({
         id: 'step2-agenda',
-        title: 'Krok 2: Výber agendy',
-        text: 'Výborne. Teraz si vyberte agendu, s ktorou chcete pracovať. Každá karta predstavuje iný typ dokumentov, ktoré je možné generovať.',
+        title: `
+            <div class="tour-step-header">
+                <i class="fas fa-route"></i>
+                <div class="title-group">
+                    <h3>Krok 2/3: Výber agendy</h3>
+                    <span>Zvoľte typ dokumentov</span>
+                </div>
+            </div>`,
+        text: 'Výborne. Teraz si vyberte agendu, s ktorou chcete pracovať. Každá karta predstavuje iný typ dokumentov na generovanie.',
         attachTo: {
             element: '.agenda-selection',
             on: 'right'
@@ -57,8 +71,15 @@ export function startGuidedTour() {
     
     tour.addStep({
         id: 'step3-content',
-        title: 'Krok 3: Pracovná plocha',
-        text: 'Po výbere agendy sa v tejto hlavnej časti zobrazia všetky potrebné nástroje: polia na zadanie čísla spisu, nahrávanie súborov a generovanie dokumentov.',
+        title: `
+            <div class="tour-step-header">
+                <i class="fas fa-route"></i>
+                <div class="title-group">
+                    <h3>Krok 3/3: Pracovná plocha</h3>
+                    <span>Hlavný priestor pre vašu prácu</span>
+                </div>
+            </div>`,
+        text: 'Po výbere agendy sa v tejto časti zobrazia všetky potrebné nástroje na nahrávanie súborov a generovanie dokumentov.',
         attachTo: {
             element: '#dashboard-content',
             on: 'left'
@@ -68,7 +89,7 @@ export function startGuidedTour() {
             secondary: true,
             action: tour.back
         }, {
-            text: 'Rozumiem, dokončiť',
+            text: 'Dokončiť',
             action: tour.complete
         }]
     });
