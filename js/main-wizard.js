@@ -1,8 +1,10 @@
-import { OKRESNE_URADY } from './config.js';
+// js/main-wizard.js
+import { OKRESNE_URADY, TEMPLATE_PATHS, TEMPLATE_DOWNLOAD_FILES } from './config.js';
 import { showNotification, showErrorModal, showModal, formatBytes } from './ui.js';
 import { agendaConfigs } from './agendaConfigFactory.js';
 import { DocumentProcessor } from './DocumentProcessor.js';
 import { startGuidedTour } from './tour.js';
+import { MUNICIPALITY_EMAILS } from './mail-config.js';
 
 // Globálny stav aplikácie
 const AppState = {
@@ -12,7 +14,9 @@ const AppState = {
     selectedAgendaKey: null,
     processor: null,
     files: {},
-    notifications: [] // <-- NOVÝ STAV pre notifikácie
+    notifications: [],
+    municipalitiesMailContent: {},
+    zoznamyPreObceGenerated: false,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,8 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetAppBtn = document.getElementById('reset-app-btn');
     const helpCenterBtn = document.getElementById('show-help-center');
     const resetTourBtn = document.getElementById('reset-tour-btn');
+    const sendMailBtn = document.getElementById('send-mail-btn');
 
-    // === NOVÉ: DOM ELEMENTY PRE CENTRUM NOTIFIKÁCIÍ ===
     const notificationBellBtn = document.getElementById('notification-bell-btn');
     const notificationPanel = document.getElementById('notification-center-panel');
     const notificationList = document.getElementById('notification-list');
@@ -35,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarSteps = {
         step1: document.getElementById('sidebar-step-1'),
         step2: document.getElementById('sidebar-step-2'),
+        step3: document.getElementById('sidebar-step-3'),
     };
 
     // === INICIALIZÁCIA ===
@@ -43,19 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
     startGuidedTour();
 
     // ======================================================
-    // === NOVÉ: LOGIKA PRE CENTRUM NOTIFIKÁCIÍ ============
+    // === LOGIKA PRE CENTRUM NOTIFIKÁCIÍ ===================
     // ======================================================
     
-    /**
-     * Vykreslí notifikácie zo stavu AppState.notifications do panela.
-     */
     function renderNotifications() {
         if (!notificationList) return;
 
         if (AppState.notifications.length === 0) {
             notificationList.innerHTML = '<li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>';
         } else {
-            // Zobrazujeme maximálne posledných 50 notifikácií, aby sme nepreťažili DOM
             notificationList.innerHTML = AppState.notifications.slice(0, 50).map(n => `
                 <li class="notification-item ${n.type}">
                     <i class="fas ${getIconForType(n.type)} icon"></i>
@@ -72,11 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationBadge.style.display = unreadCount > 0 ? 'block' : 'none';
     }
 
-    /**
-     * Pridá novú notifikáciu do stavu.
-     * @param {string} message - Správa notifikácie.
-     * @param {string} type - Typ (success, error, info, warning).
-     */
     function addNotification(message, type = 'info') {
         const newNotification = {
             id: Date.now(),
@@ -84,16 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
             type,
             timestamp: new Date()
         };
-        // Pridáme najnovšiu na začiatok poľa
         AppState.notifications.unshift(newNotification);
         renderNotifications();
     }
 
-    /**
-     * Vráti CSS triedu ikony na základe typu notifikácie.
-     * @param {string} type - Typ notifikácie.
-     * @returns {string} - Trieda ikony.
-     */
     function getIconForType(type) {
         const icons = {
             success: 'fa-check-circle',
@@ -104,9 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return icons[type] || 'fa-info-circle';
     }
 
-    // --- Event Listenery pre Centrum Notifikácií ---
     notificationBellBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Zabráni zavretiu panelu hneď po otvorení
+        e.stopPropagation();
         notificationPanel.classList.toggle('show');
     });
 
@@ -116,13 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         showNotification('História notifikácií bola vymazaná.', 'info');
     });
 
-    // Počúva na udalosť odoslanú z ui.js a pridáva notifikáciu do stavu
     document.addEventListener('add-notification', (e) => {
         const { message, type } = e.detail;
         addNotification(message, type);
     });
 
-    // Zavrie panel, ak sa klikne mimo neho
     document.addEventListener('click', (e) => {
         if (!notificationPanel.contains(e.target) && notificationPanel.classList.contains('show')) {
             notificationPanel.classList.remove('show');
@@ -143,6 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const agendaSelected = !!AppState.selectedAgendaKey;
         sidebarSteps.step2.classList.toggle('is-active', ouSelected && !agendaSelected);
         sidebarSteps.step2.classList.toggle('is-completed', ouSelected && agendaSelected);
+        
+        const mailStepActive = AppState.zoznamyPreObceGenerated && AppState.selectedAgendaKey === 'vp';
+        sidebarSteps.step3.classList.toggle('is-active', mailStepActive);
 
         const stepPreview = document.getElementById('workflow-step-preview');
         const stepGenerate = document.getElementById('workflow-step-generate');
@@ -156,10 +146,27 @@ document.addEventListener('DOMContentLoaded', () => {
             stepGenerate.classList.toggle('is-disabled', !filesReady || !spisReady);
         }
     }
-    
+
     // =============================
     // HLAVNÁ LOGIKA A FUNKCIE
     // =============================
+
+    function setOkresnyUrad(ouKey) {
+        if (!ouKey) {
+            resetApp();
+            return;
+        }
+
+        ouSelect.value = ouKey;
+        AppState.selectedOU = ouKey;
+        AppState.okresData = OKRESNE_URADY[ouKey];
+        localStorage.setItem('krokr-lastOU', ouKey);
+        showNotification(`Vybraný OÚ: ${AppState.okresData.Okresny_urad}`, 'success');
+        if (AppState.selectedAgendaKey) {
+            renderAgendaView(AppState.selectedAgendaKey);
+        }
+        updateUIState();
+    }
 
     function showWelcomeMessage() {
         dashboardContent.innerHTML = `
@@ -176,7 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.assign(AppState, {
             selectedOU: null, okresData: null, spis: {}, 
             selectedAgendaKey: null, processor: null, files: {},
-            notifications: [] // Resetujeme aj notifikácie
+            notifications: [],
+            municipalitiesMailContent: {},
+            zoznamyPreObceGenerated: false,
         });
         
         ouSelect.value = '';
@@ -184,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         showWelcomeMessage();
         updateUIState();
-        renderNotifications(); // Vykreslíme prázdny stav
+        renderNotifications();
         showNotification('Aplikácia bola resetovaná.', 'info');
     }
 
@@ -193,7 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!agendaConfig) return;
 
         AppState.selectedAgendaKey = agendaKey;
-        AppState.files = {}; // Reset files on new agenda selection
+        AppState.files = {};
+        AppState.municipalitiesMailContent = {};
+        AppState.zoznamyPreObceGenerated = false;
+
         agendaCards.forEach(card => card.classList.toggle('active', card.dataset.agenda === agendaKey));
 
         const fileInputsHTML = agendaConfig.dataInputs.map(inputConf => `
@@ -284,7 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
             appState: AppState,
             dataInputs: baseConfig.dataInputs,
             previewElementId: 'preview-container',
-            dataProcessor: baseConfig.dataProcessor,
+            // --- TU BOLA CHYBA ---
+            dataProcessor: baseConfig.dataProcessor, // Opravené z 'base' na 'baseConfig'
+            // --- KONIEC OPRAVY ---
             generators: baseConfig.generators,
             onDataProcessed: () => updateUIState()
         };
@@ -295,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function loadPscFile() {
         try {
-            const response = await fetch('TEMP/PSC.xlsx');
+            const response = await fetch(TEMPLATE_PATHS.pscFile);
             if (!response.ok) throw new Error(`Súbor PSČ sa nepodarilo načítať: ${response.statusText}`);
             const arrayBuffer = await response.arrayBuffer();
             AppState.processor.state.data.psc = arrayBuffer;
@@ -308,20 +322,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // =============================
     // EVENT LISTENERS
     // =============================
+    
     ouSelect.addEventListener('change', (e) => {
-        const selectedValue = e.target.value;
-        if (!selectedValue) {
-            resetApp();
-            return;
-        }
-        AppState.selectedOU = selectedValue;
-        AppState.okresData = OKRESNE_URADY[selectedValue];
-        localStorage.setItem('krokr-lastOU', selectedValue);
-        showNotification(`Vybraný OÚ: ${AppState.okresData.Okresny_urad}`, 'success');
-        if (AppState.selectedAgendaKey) {
-            renderAgendaView(AppState.selectedAgendaKey);
-        }
-        updateUIState();
+        setOkresnyUrad(e.target.value);
     });
 
     agendaCards.forEach(card => {
@@ -342,6 +345,157 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+if (sendMailBtn) {
+    const PREVIEW_THRESHOLD = 20; 
+    const PARTIAL_PREVIEW_COUNT = 10;
+
+    const showEmailPreviewModal = (obecName) => {
+        const mailContent = AppState.municipalitiesMailContent;
+        const ouEmails = MUNICIPALITY_EMAILS[AppState.selectedOU] || {};
+        
+        const emailData = mailContent[obecName];
+        if (!emailData) {
+            showErrorModal({ message: 'Nenašli sa dáta pre e-mail pre zvolenú obec.'});
+            return;
+        }
+
+        const { html: htmlBody, count: rowCount } = emailData;
+        const recipient = ouEmails[obecName];
+        const subject = `Zoznam subjektov pre obec ${obecName}`;
+
+        const modalTitle = `
+            <div class="help-center-header">
+                <i class="fas fa-envelope-open-text"></i>
+                <div class="title-group">
+                    <h3>Náhľad e-mailu</h3>
+                    <span>Skontrolujte obsah a skopírujte ho do e-mailového klienta.</span>
+                </div>
+            </div>`;
+
+        let previewContentHTML;
+
+        if (rowCount > PREVIEW_THRESHOLD) {
+            previewContentHTML = `
+                <div id="email-preview-content" style="border: 1px solid #e0e0e0; padding: 1rem; border-radius: 8px; background-color: #f9f9f9;">
+                    <p>Náhľad e-mailu pre obec <strong>${obecName}</strong> obsahuje veľký počet záznamov (<strong>${rowCount} riadkov</strong>).</p>
+                    <p>Zobrazenie celej tabuľky by mohlo spomaliť Váš prehliadač. Tlačidlo nižšie skopíruje <strong>kompletné dáta</strong>.</p>
+                    <button id="show-partial-preview-btn" class="btn btn--secondary" style="margin-top: 0.5rem;"><i class="fas fa-eye"></i> Zobraziť ukážku prvých ${PARTIAL_PREVIEW_COUNT} riadkov</button>
+                    <div id="email-partial-preview" style="display: none; margin-top: 1rem; max-height: 25vh; overflow-y: auto;"></div>
+                </div>`;
+        } else {
+            previewContentHTML = `
+                <div id="email-preview-content" style="border: 1px solid #e0e0e0; padding: 1rem; border-radius: 8px; background-color: #f9f9f9; max-height: 40vh; overflow-y: auto;">
+                    ${htmlBody}
+                </div>`;
+        }
+
+        const modalContent = `
+            <div style="font-size: 0.9em; display: flex; flex-direction: column; gap: 1rem;">
+                <p><strong>Príjemca:</strong> ${recipient}</p>
+                <p><strong>Predmet:</strong> ${subject}</p>
+                <p><strong>Telo e-mailu:</strong></p>
+                ${previewContentHTML}
+                <div style="background-color: var(--primary-color-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                    <p style="margin-bottom: 0.75rem;">Kliknutím na tlačidlo sa <strong>celé telo e-mailu</strong> (všetkých ${rowCount} riadkov) skopíruje a otvorí sa Váš predvolený e-mailový program. Následne stačí obsah do tela e-mailu iba vložiť (Ctrl+V).</p>
+                    <button id="copy-and-open-mail-btn" class="btn btn--primary"><i class="fas fa-copy"></i> Skopírovať telo a otvoriť e-mail</button>
+                </div>
+            </div>
+        `;
+
+        showModal({ title: modalTitle, content: modalContent });
+
+        document.getElementById('copy-and-open-mail-btn').addEventListener('click', async () => {
+            try {
+                const blob = new Blob([htmlBody], { type: 'text/html' });
+                const clipboardItem = new ClipboardItem({ 'text/html': blob });
+                await navigator.clipboard.write([clipboardItem]);
+                
+                showNotification(`Telo e-mailu (${rowCount} riadkov) bolo skopírované!`, 'success');
+                
+                const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}`;
+                window.location.href = mailtoLink;
+
+            } catch (err) {
+                showErrorModal({
+                    message: 'Nepodarilo sa automaticky skopírovať obsah.',
+                    details: 'Prosím, označte text v náhľade manuálne (Ctrl+A, Ctrl+C) a pokračujte. Chyba: ' + err.message
+                });
+            }
+        });
+
+        const showPartialBtn = document.getElementById('show-partial-preview-btn');
+        if (showPartialBtn) {
+            showPartialBtn.addEventListener('click', () => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlBody;
+                
+                const table = tempDiv.querySelector('table');
+                if (table) {
+                    const rows = Array.from(table.querySelectorAll('tbody > tr'));
+                    const previewRows = rows.slice(0, PARTIAL_PREVIEW_COUNT);
+                    
+                    const newTbody = document.createElement('tbody');
+                    previewRows.forEach(row => newTbody.appendChild(row.cloneNode(true)));
+                    
+                    table.querySelector('tbody').replaceWith(newTbody);
+                    
+                    const partialPreviewContainer = document.getElementById('email-partial-preview');
+                    partialPreviewContainer.innerHTML = tempDiv.innerHTML;
+                    partialPreviewContainer.style.display = 'block';
+                    showPartialBtn.style.display = 'none';
+                }
+            });
+        }
+    };
+
+    sendMailBtn.addEventListener('click', () => {
+        if (!AppState.zoznamyPreObceGenerated) {
+            showNotification("Táto možnosť je dostupná až po vygenerovaní zoznamov pre obce v agende 'Vecné prostriedky'.", "warning");
+            return;
+        }
+
+        const mailContent = AppState.municipalitiesMailContent;
+        const ouEmails = MUNICIPALITY_EMAILS[AppState.selectedOU] || {};
+        
+        let listHTML = '<ul style="list-style-type: none; padding: 0;">';
+        let hasContent = false;
+
+        for (const obecName in mailContent) {
+            hasContent = true;
+            const recipientEmail = ouEmails[obecName];
+            const rowCount = mailContent[obecName].count;
+
+            listHTML += `<li style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee;">
+                <span><i class="fas fa-building" style="margin-right: 10px; color: #555;"></i>${obecName} <small>(${rowCount} záznamov)</small></span>`;
+
+            if (recipientEmail) {
+                listHTML += `<button class="btn btn--primary prepare-mail-to-obec-btn" data-obec="${encodeURIComponent(obecName)}">
+                    <i class="fas fa-envelope"></i> Pripraviť e-mail
+                </button>`;
+            } else {
+                listHTML += `<span style="color: var(--danger-color); font-size: 0.9em;"><i class="fas fa-exclamation-triangle"></i> Email nenájdený</span>`;
+            }
+            listHTML += `</li>`;
+        }
+        listHTML += '</ul>';
+
+        if (!hasContent) {
+             showModal({ title: 'Odoslanie pošty', content: '<p>Nenašli sa žiadne vygenerované dáta pre odoslanie.</p>'});
+             return;
+        }
+        
+        showModal({ title: 'Odoslať zoznamy obciam', content: listHTML });
+    });
+
+    document.getElementById('modal-container').addEventListener('click', (e) => {
+        const target = e.target.closest('.prepare-mail-to-obec-btn');
+        if (!target) return;
+
+        const obecName = decodeURIComponent(target.dataset.obec);
+        showEmailPreviewModal(obecName);
+    });
+}
+
     if (resetTourBtn) {
         resetTourBtn.addEventListener('click', () => {
             localStorage.removeItem('krokr-tour-completed');
@@ -352,14 +506,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (helpCenterBtn) {
         helpCenterBtn.addEventListener('click', showHelpCenterModal);
     }
+    
+    // Zvyšok súboru ostáva bez zmeny...
+    async function handleDownloadTemplates() {
+        const downloadBtn = document.getElementById('download-templates-btn');
+        const originalText = downloadBtn.innerHTML;
+        downloadBtn.disabled = true;
+        downloadBtn.innerHTML = '<span class="btn-spinner"></span> Pripravujem...';
 
-    // ==================================
-    // FUNKCIE PRE NÁPOVEDU A LISTENERY
-    // ==================================
+        try {
+            const zip = new JSZip();
+            const files = Object.entries(TEMPLATE_DOWNLOAD_FILES);
 
-    /**
-     * **REDDIZAJN CENTRA NÁPOVEDY:** Nová funkcia s tab-based layoutom.
-     */
+            const fetchedFiles = await Promise.all(
+                files.map(async ([fileName, path]) => {
+                    const response = await fetch(path);
+                    if (!response.ok) {
+                        throw new Error(`Súbor ${fileName} sa nepodarilo načítať na ceste: ${path} (status: ${response.status})`);
+                    }
+                    return { name: fileName, data: await response.arrayBuffer() };
+                })
+            );
+
+            fetchedFiles.forEach(file => zip.file(file.name, file.data));
+
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            saveAs(zipBlob, 'vzorove_sablony.zip');
+            showNotification('Vzorové súbory boli úspešne stiahnuté.', 'success');
+
+        } catch (error) {
+            showErrorModal({
+                message: 'Nepodarilo sa stiahnuť vzorové súbory.',
+                details: error.message
+            });
+        } finally {
+            downloadBtn.disabled = false;
+            downloadBtn.innerHTML = originalText;
+        }
+    }
+
     function showHelpCenterModal() {
         const title = `
             <div class="help-center-header">
@@ -373,6 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const content = `
             <div class="modal-tabs-container">
                 <div class="modal-tab active" data-tab="faq"><i class="fas fa-question-circle"></i> Časté otázky</div>
+                <div class="modal-tab" data-tab="download"><i class="fas fa-download"></i> Na stiahnutie</div>
                 <div class="modal-tab" data-tab="troubleshooting"><i class="fas fa-wrench"></i> Riešenie problémov</div>
             </div>
 
@@ -388,6 +574,61 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <li>je zvolená agenda</li>
                                     <li>je zadané a uložené <strong>číslo spisu</strong></li>
                                     <li>je nahratý a úspešne spracovaný <strong>vstupný .xlsx súbor</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <div class="accordion-header">Prečo je výber okresného úradu zablokovaný?</div>
+                            <div class="accordion-content">
+                                Aplikácia je navrhnutá tak, aby vás viedla procesom v logickom poradí:
+                                <ul>
+                                    <li>Krok 1: Vyberte úrad (tento výber sa uzamkne)</li>
+                                    <li>Krok 2: Vyberte agendu</li>
+                                    <li>Krok 3: Pracujte s dátami a generujte dokumenty</li>
+                                </ul>
+                                <p style="margin-bottom: 1rem;">Je to bezpečnostné opatrenie, aby ste si boli vedomý, že zmenou úradu prichádzate o rozpracované (nevygenerované) dáta pre predošlý úrad.</p>
+                                <p>Ak chcete <b>zmeniť okresný úrad</b>, použite tlačidlo <b>"Resetovať aplikáciu"</b> v ľavom dolnom rohu.</p>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <div class="accordion-header">Aké voľby si pamätá aplikácia, aby zjednodušila opakované používanie?</div>
+                            <div class="accordion-content">
+                                <b>Posledný vybraný okresný úrad</b>:
+                                <ul>
+                                    <li>Čo si pamätá? Váš výber okresného úradu (napr. Banská Bystrica, Zvolen atď.).</li>
+                                    <li>Kedy si to pamätá? Ihneď, ako vyberiete úrad z ponuky. Pri ďalšej návšteve stránky bude tento úrad automaticky predvolený.</li>
+                                </ul>
+                                <b>Posledná zvolená agenda</b>:
+                                <ul>
+                                    <li>Čo si pamätá? Agendu, s ktorou ste naposledy pracovali (napr. Vecné prostriedky, Pracovná povinnosť).</li>
+                                    <li>Kedy si to pamätá? Hneď po kliknutí na kartu agendy. Keď sa vrátite do aplikácie a máte už vybraný okresný úrad, automaticky sa načíta táto agenda.</li>
+                                </ul>
+                                <b>Dokončenie úvodného sprievodcu</b>:
+                                <ul>
+                                    <li>Čo si pamätá? Informáciu o tom, či ste už prešli alebo zatvorili úvodného sprievodcu aplikáciou.</li>
+                                    <li>Kedy si to pamätá? Po dokončení alebo zrušení sprievodcu. Vďaka tomu sa vám sprievodca nezobrazí pri každej návšteve.</li>
+                                </ul>
+                                <p>Ak chcete <b>začať odznova</b>, použite tlačidlo <b>"Resetovať aplikáciu"</b> v ľavom dolnom rohu.</p>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <div class="accordion-header">Čo si aplikácia nepamätá?</div>
+                            <div class="accordion-content">
+                                Z bezpečnostných a praktických dôvodov si aplikácia neukladá nasledujúce dáta:
+                                <ul>
+                                    <li><b>Nahraté .xlsx súbory</b>: Po zatvorení alebo obnovení stránky musíte vstupné súbory nahrať znova.</li>
+                                    <li><b>Zadané číslo spisu</b>: Toto pole bude pri novej návšteve prázdne.</li>
+                                    <li><b>Spracované dáta ani vygenerované dokumenty</b>: Všetko sa spracúva len dočasne a po opustení stránky sa tieto dáta stratia.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <div class="accordion-header">Kedy sa pamäť aplikácie vymaže?</div>
+                            <div class="accordion-content">
+                                Uložené údaje (okresný úrad, agenda, stav sprievodcu) sa vymažú v týchto prípadoch:
+                                <ul>
+                                    <li>ak kliknete na tlačidlo <b>"Resetovať aplikáciu"</b> v ľavom dolnom rohu</li>
+                                    <li>ak manuálne vymažete dáta webových stránok (cache, local storage) vo vašom prehliadači</li>
                                 </ul>
                             </div>
                         </div>
@@ -416,9 +657,17 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <li>názvy stĺpcov presne zodpovedajú predlohe</li>
                                     <li>dáta v súbore sú v očakávanom formáte a bunky nie sú zlúčené</li>
                                 </ul>
-                                Pre viac detailov si pozrite chybové hlásenie, ktoré sa zobrazí, alebo sekciu "Riešenie problémov".
+                                Pre viac detailov si pozrite chybové hlásenie, ktoré sa zobrazí, alebo sekciu <b>"Riešenie problémov"</b>.
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div id="tab-download" class="modal-tab-content">
+                    <h4 style="margin-bottom: 1.5rem;">Vzorové vstupné súbory</h4>
+                    <p>Stlačením tlačidla nižšie si stiahnete ZIP archív obsahujúci vzorové vstupné .xlsx súbory pre všetky agendy. Tieto súbory obsahujú presné názvy stĺpcov, ktoré aplikácia očakáva pre správne spracovanie dát.</p>
+                    <div style="text-align: right; margin-top: 1.5rem;">
+                        <button id="download-templates-btn" class="btn btn--primary"><i class="fas fa-download"></i> Stiahnuť vzory (.zip)</button>
                     </div>
                 </div>
 
@@ -441,16 +690,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         showModal({ title: title, content: content });
-        // Pridanie listenera pre tlačidlo vnútri modálneho okna
-        const restartTourBtn = document.getElementById('restart-tour-from-modal');
-        if(restartTourBtn) {
-            restartTourBtn.addEventListener('click', () => {
-                document.querySelector('.modal-close-btn')?.click(); // Zavrie modálne okno
-                setTimeout(() => {
-                    localStorage.removeItem('krokr-tour-completed');
-                    startGuidedTour();
-                }, 300); // Malé oneskorenie kvôli animácii zatvorenia
-            });
+
+        const downloadBtn = document.getElementById('download-templates-btn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', handleDownloadTemplates);
         }
     }
 
@@ -523,7 +766,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     AppState.processor.state.processedData = null;
                     
-                    // === ZMENA: Zobrazenie "empty state" po vymazaní súboru ===
                     const previewContainer = document.getElementById('preview-container');
                     if (previewContainer) {
                         previewContainer.innerHTML = `
@@ -552,17 +794,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const saveFileNumber = () => {
-    const value = spisInput.value.trim();
-    const existingValue = AppState.spis[AppState.selectedAgendaKey];
+            const value = spisInput.value.trim();
+            const existingValue = AppState.spis[AppState.selectedAgendaKey];
 
-    // --- KĽÚČOVÁ ZMENA: Uložíme a notifikujeme iba vtedy, ak je hodnota nová ---
-    if (value && value !== existingValue) {
-        AppState.spis[AppState.selectedAgendaKey] = value;
-        showNotification(`Číslo spisu bolo uložené.`, 'success');
-        AppState.processor?.checkAllButtonsState();
-        updateUIState();
-    }
-};
+            if (value && value !== existingValue) {
+                AppState.spis[AppState.selectedAgendaKey] = value;
+                showNotification(`Číslo spisu bolo uložené.`, 'success');
+                AppState.processor?.checkAllButtonsState();
+                updateUIState();
+            }
+        };
 
         saveSpisBtn.addEventListener('click', saveFileNumber);
         spisInput.addEventListener('blur', saveFileNumber);
@@ -572,8 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initializeFromLocalStorage() {
         const lastOU = localStorage.getItem('krokr-lastOU');
         if (lastOU) {
-            ouSelect.value = lastOU;
-            ouSelect.dispatchEvent(new Event('change'));
+            setOkresnyUrad(lastOU);
             
             const lastAgenda = localStorage.getItem('krokr-lastAgenda');
             if (lastAgenda) {

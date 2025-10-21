@@ -1,3 +1,5 @@
+// js/DocumentProcessor.js
+
 import { showNotification, toggleSpinner, createProgressTracker, showErrorModal, setButtonState } from './ui.js';
 
 export class DocumentProcessor {
@@ -291,7 +293,6 @@ export class DocumentProcessor {
         setButtonState(button, 'loading', 'Exportujem...');
         
         try {
-            // === ZMENA: Lazy Loading šablóny (ak by sa použila pre .docx v tejto metóde) ===
             if (generator.templateKey && generator.templatePath) {
                 await this._ensureTemplateLoaded(generator.templateKey, generator.templatePath);
             }
@@ -317,6 +318,11 @@ export class DocumentProcessor {
             const tracker = createProgressTracker(totalGroups, generator.title);
             let currentGroup = 0;
             
+            if (generatorKey === 'zoznamyObce') {
+                this.state.appState.municipalitiesMailContent = {};
+                this.state.appState.zoznamyPreObceGenerated = false;
+            }
+
             for (const groupKey in groupedData) {
                 currentGroup++;
                 const groupRows = groupedData[groupKey];
@@ -332,6 +338,47 @@ export class DocumentProcessor {
                     XLSX.utils.book_append_sheet(wb, ws, 'Zoznam');
                     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                     zip.file(fileName, excelBuffer);
+
+                    // --- ZAČIATOK ÚPRAVY: Generovanie HTML tabuľky pre email ---
+                    if (generatorKey === 'zoznamyObce') {
+                        const headers = Object.keys(excelData.data[0]);
+                        
+                        // Vytvorenie hlavičky tabuľky
+                        const tableHeader = headers.map(h => `<th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">${h}</th>`).join('');
+
+                        // Vytvorenie riadkov tabuľky
+                        const tableRows = excelData.data.map(row => {
+                            const cells = headers.map(h => `<td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">${row[h]}</td>`).join('');
+                            return `<tr>${cells}</tr>`;
+                        }).join('');
+
+                        // Zostavenie celého HTML tela e-mailu
+                        const mailBody = `
+                            <p>Dobrý deň,</p>
+                            <p style="margin-bottom: 1rem;">zasielame Vám zoznam subjektov, ktorým môže byť uložená v zmysle § 18 zákona č. 319/2002 Z. z. o obrane Slovenskej republiky povinnosť poskytnúť v čase vojny alebo vojnového stavu vecné prostriedky určené na plnenie úloh obrany štátu.</p>
+                            <p>Zoznam:</p>
+                            <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px;">
+                                <thead>
+                                    <tr style="background-color: #f2f2f2;">
+                                        ${tableHeader}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableRows}
+                                </tbody>
+                            </table>
+                            <p>S pozdravom</p>
+                        `;
+                        
+                        // --- ZMENA: Ukladáme objekt s HTML a počtom riadkov ---
+                        this.state.appState.municipalitiesMailContent[groupKey] = {
+                            html: mailBody,
+                            count: groupRows.length
+                        };
+                        // --- KONIEC ZMENY ---
+                    }
+                    // --- KONIEC ÚPRAVY ---
+
                 } else {
                     const templateContent = this.state.templates[generator.templateKey];
                     if (!templateContent) throw new Error(`Chýba šablóna pre: ${generator.title}`);
@@ -349,7 +396,14 @@ export class DocumentProcessor {
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
             tracker.close();
-            // --- ZMENA 3/3: Špecifická notifikácia ---
+            
+            if (generatorKey === 'zoznamyObce') {
+                this.state.appState.zoznamyPreObceGenerated = true;
+                if (this.config.onDataProcessed) {
+                    this.config.onDataProcessed();
+                }
+            }
+
             showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
 
         } catch (error) {
