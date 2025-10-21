@@ -46,6 +46,7 @@ body {
 .dashboard-container { display: flex; height: 100vh; }
 
 .dashboard-sidebar {
+    position: relative; /* <-- PRIDANÝ RIADOK */
     width: 340px;
     background-color: var(--light-color);
     padding: 2rem 1.5rem;
@@ -56,7 +57,7 @@ body {
     z-index: 10;
 }
 
-.sidebar-header { margin-bottom: 2.5rem; text-align: center; }
+.sidebar-header { margin-bottom: 1.5rem; text-align: center; }
 .sidebar-header h3 { font-size: 1.5rem; color: var(--primary-color); }
 .sidebar-steps { list-style: none; padding: 0; margin: 0; }
 .sidebar-step { padding-left: 2.5rem; position: relative; opacity: 0.5; transition: var(--transition); }
@@ -101,7 +102,7 @@ body {
 .sidebar-step.is-completed::after { background-color: var(--primary-color); }
 
 .step-header { font-weight: 600; color: var(--secondary-color); margin-bottom: 0.75rem; display: block; font-size: 1rem; }
-.step-content { padding-bottom: 2.5rem; }
+.step-content { padding-bottom: 1rem; }
 
 .sidebar-footer {
     margin-top: auto;
@@ -185,6 +186,8 @@ body {
 .form-input { width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; transition: var(--transition); }
 
 .agenda-selection { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; padding: 4px; }
+.action-selection { display: flex; padding: 4px; justify-content: left; }
+.action-selection .agenda-card { width: auto; }
 .agenda-card { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; border: 2px solid var(--border-color); border-radius: var(--border-radius); cursor: pointer; transition: var(--transition); min-height: 110px; }
 .agenda-card i { transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-size: 1.75rem; margin-bottom: 0.5rem; }
 .agenda-card:hover i { transform: translateY(-4px) scale(1.1); }
@@ -233,7 +236,7 @@ body {
 .shepherd-element.shepherd-custom-theme { border-radius: var(--border-radius); box-shadow: var(--box-shadow-lg); }
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(33, 33, 33, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 3000; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
 .modal-overlay.active { opacity: 1; pointer-events: auto; }
-.modal-content { background-color: var(--light-color); padding: 0; border-radius: var(--border-radius); box-shadow: var(--box-shadow-lg); max-width: 700px; width: 90%; max-height: 90vh; display: flex; flex-direction: column; position: relative; transform: scale(0.95); transition: transform 0.3s ease; }
+.modal-content { background-color: var(--light-color); padding: 0; border-radius: var(--border-radius); box-shadow: var(--box-shadow-lg); max-width: 810px; width: 90%; max-height: 90vh; display: flex; flex-direction: column; position: relative; transform: scale(0.95); transition: transform 0.3s ease; }
 .modal-overlay.active .modal-content { transform: scale(1); }
 .modal-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-color); }
 .modal-header h3 { margin: 0; font-size: 1.25rem; }
@@ -259,7 +262,7 @@ body {
 .accordion-header::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; transition: transform 0.3s ease; }
 .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.4s ease-out; padding: 0 1.5rem; background-color: var(--background-color); font-size: 0.9rem; }
 .accordion-item.active .accordion-header::after { transform: rotate(180deg); }
-.accordion-item.active .accordion-content { max-height: 300px; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); }
+.accordion-item.active .accordion-content { max-height: 600px; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); }
 .empty-state-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 3rem 2rem; border: 2px dashed var(--border-color); border-radius: var(--border-radius); color: #9e9e9e; min-height: 200px; }
 .empty-state-placeholder i { font-size: 3rem; margin-bottom: 1rem; color: var(--border-color); }
 .empty-state-placeholder h4 { font-size: 1.2rem; color: var(--secondary-color); margin-bottom: 0.5rem; }
@@ -419,4 +422,8 @@ body {
 
 .shepherd-custom-theme .shepherd-cancel-icon:hover {
     color: var(--danger-color) !important;
+}
+
+#sidebar-step-2 .step-content {
+    padding-bottom: 1rem; /* Môžete si zvoliť aj inú hodnotu, napr. 2.5rem, 4rem atď. */
 }
