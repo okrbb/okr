@@ -1,6 +1,13 @@
 // js/agendaConfigFactory.js
 
-import { POSTOVNE, TEMPLATE_PATHS } from './config.js'; // <-- PRIDANÝ IMPORT TEMPLATE_PATHS
+import { POSTOVNE, TEMPLATE_PATHS } from './config.js';
+
+// === NOVÉ IMPORTY PRE EXTRAHOVANÉ PROCESORY ===
+import { vpDataProcessor } from './processors/vpProcessor.js';
+import { ppDataProcessor } from './processors/ppProcessor.js';
+import { ubDataProcessor } from './processors/ubProcessor.js';
+import { drDataProcessor } from './processors/drProcessor.js';
+// =================================================
 
 // =============================================================================
 //  KONFIGURÁCIA PRE JEDNOTLIVÉ AGENDY
@@ -16,119 +23,23 @@ export const agendaConfigs = {
             { id: 'zoznam-subjektov-vp', label: 'Zoznam subjektov (.xlsx)', stateKey: 'subjekty' }
             // Súbor PSC.xlsx sa načíta automaticky v main-wizard.js
         ],
-        dataProcessor: (data) => {
-            if (!data || !data.subjekty || !data.psc) {
-                throw new Error("Chýbajú vstupné súbory. Zoznam subjektov je nutné nahrať a súbor PSČ by sa mal načítať automaticky.");
-            }
-
-            const wbSubjekty = XLSX.read(data.subjekty, { type: 'array' });
-            const wbPsc = XLSX.read(data.psc, { type: 'array' });
-
-            const wsSubjekty = wbSubjekty.Sheets[wbSubjekty.SheetNames[0]];
-            const wsPsc = wbPsc.Sheets[wbPsc.SheetNames[0]];
-
-            let jsonSubjekty = XLSX.utils.sheet_to_json(wsSubjekty, { header: 1, defval: '', blankrows: false });
-            const jsonPsc = XLSX.utils.sheet_to_json(wsPsc, { header: 1, defval: '', blankrows: false });
-            
-            let headerRowIndex = jsonSubjekty.findIndex(row => row.some(cell => String(cell).trim() === 'P.Č.'));
-            if (headerRowIndex === -1) throw new Error('Nenašiel sa riadok s hlavičkou "P.Č."');
-
-            const mainHeaderRow = jsonSubjekty[headerRowIndex];
-            const subHeaderRow = jsonSubjekty[headerRowIndex + 1];
-
-            const pscMap = new Map();
-            const pscHeaderRow = jsonPsc[0];
-            const obecIndexPsc = pscHeaderRow.findIndex(h => h === 'OBEC');
-            const pscIndexPsc = pscHeaderRow.findIndex(h => h === 'PSC');
-            const dpostaIndexPsc = pscHeaderRow.findIndex(h => h === 'DPOSTA');
-
-            for (let i = 1; i < jsonPsc.length; i++) {
-                const row = jsonPsc[i];
-                if (row[obecIndexPsc]) {
-                    pscMap.set(String(row[obecIndexPsc]).toUpperCase(), { psc: row[pscIndexPsc], dposta: row[dpostaIndexPsc] });
-                }
-            }
-            
-            let pcIndex = mainHeaderRow.findIndex(c => c === 'P.Č.');
-            let dodavatelIndex = mainHeaderRow.findIndex(c => c === 'DODÁVATEĽ');
-            let okresIndex = mainHeaderRow.findIndex(c => c === 'OKRES');
-            let pcrdIndex = mainHeaderRow.findIndex(c => c === 'PČRD');
-            let ulicaIndex = subHeaderRow.findIndex(c => c === 'ULICA');
-            let popisneIndex = subHeaderRow.findIndex(c => c === 'Č. POPISNÉ');
-            let mestoObecIndex = subHeaderRow.findIndex(c => c === 'MESTO (OBEC)');
-            let icoIndex = mainHeaderRow.findIndex(c => c === 'IČO');
-            let znackaIndex = mainHeaderRow.findIndex(c => c === 'TOVÁRENSKÁ ZNAČKA');
-            let karoseriaIndex = mainHeaderRow.findIndex(c => c === 'DRUH KAROSÉRIE');
-            let ecvIndex = mainHeaderRow.findIndex(c => c === 'EČV');
-            let utvarIndex = mainHeaderRow.findIndex(c => c === 'ÚTVAR');
-            let miestoDodaniaIndex = mainHeaderRow.findIndex(c => c === 'MIESTO DODANIA');
-
-            const newHeader = ['P.Č.', 'DODÁVATEĽ', 'ULICA', 'Č. POPISNÉ', 'MESTO (OBEC)', 'OKRES', 'ADRESA', 'IČO', 'TOVÁRENSKÁ ZNAČKA', 'DRUH KAROSÉRIE', 'EČV', 'ÚTVAR', 'MIESTO DODANIA', 'PCRD_short', 'PSC_long'];
-            const processedData = [newHeader];
-            
-            const dataRows = jsonSubjekty.slice(headerRowIndex + 2);
-
-            for (const row of dataRows) {
-                if(!row[pcIndex]) continue;
-
-                let ulica = row[ulicaIndex] || '';
-                let popisne = row[popisneIndex] || '';
-                let mesto = row[mestoObecIndex] || '';
-                let adresa = `${ulica} ${popisne}`.trim();
-                
-                let pcrd_short = '';
-                const pcrdValue = row[pcrdIndex];
-                if (pcrdValue && typeof pcrdValue === 'string' && pcrdValue.includes('-')) {
-                    pcrd_short = pcrdValue.split('-')[0];
-                } else {
-                    pcrd_short = pcrdValue;
-                }
-
-                let psc_long = '';
-                if (mesto && pscMap.has(String(mesto).toUpperCase())) {
-                    const pscInfo = pscMap.get(String(mesto).toUpperCase());
-                    psc_long = `${pscInfo.psc} ${pscInfo.dposta}`;
-                }
-
-                const newRow = new Array(newHeader.length).fill('');
-                newRow[0] = row[pcIndex];
-                newRow[1] = row[dodavatelIndex];
-                newRow[2] = ulica;
-                newRow[3] = popisne;
-                newRow[4] = mesto;
-                newRow[5] = row[okresIndex];
-                newRow[6] = adresa;
-                newRow[7] = row[icoIndex];
-                newRow[8] = row[znackaIndex];
-                newRow[9] = row[karoseriaIndex];
-                newRow[10] = row[ecvIndex];
-                newRow[11] = row[utvarIndex];
-                newRow[12] = row[miestoDodaniaIndex];
-                newRow[13] = pcrd_short;
-                newRow[14] = psc_long;
-
-                processedData.push(newRow);
-            }
-
-            if (processedData.length <= 1) {
-                throw new Error("Spracovaním nevznikli žiadne dáta. Skontrolujte formát vstupného súboru.");
-            }
-            return processedData;
-        },
+        // === ZMENA: Použitie importovanej funkcie ===
+        dataProcessor: vpDataProcessor,
+        // ==========================================
         generators: {
             rozhodnutia: {
                 type: 'row',
                 buttonId: 'download-rozhodnutia-vp',
                 templateKey: 'rozhodnutia',
                 templatePath: TEMPLATE_PATHS.vp.rozhodnutie, // <-- ZMENA
-                title: 'Generovanie rozhodnutí VP',
+                title: 'Rozhodnutia',
                 zipName: 'rozhodnutia_VP.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
                     const ico = row[columnMap['IČO']] || '';
                     return {
                         ...appState.okresData,
                         Nazov_OU_upper: appState.okresData.Okresny_urad.toUpperCase(),
-                        'spis-VP': appState.spis.vp,
+                        'spis-VP': appState.spis, // ZMENA: Globálny spis
                         ID_OU: appState.selectedOU.toLowerCase(),
                         poradoveCislo: row[columnMap['P.Č.']],
                         nazovDodavatela: row[columnMap['DODÁVATEĽ']],
@@ -151,13 +62,13 @@ export const agendaConfigs = {
                 buttonId: 'download-obalky-vp',
                 templateKey: 'obalky',
                 templatePath: TEMPLATE_PATHS.vp.obalky, // <-- ZMENA
-                title: 'Generovanie obálok VP',
+                title: 'Obálky',
                 zipName: 'obalky_VP.zip',
                  dataMapper: ({ row, columnMap, appState }) => {
                      const pscMatch = (row[columnMap['PSC_long']] || '').match(/^(\d{3}\s?\d{2})\s+(.*)/);
                      return {
                         ...appState.okresData,
-                        'spis-VP': appState.spis.vp,
+                        'spis-VP': appState.spis, // ZMENA: Globálny spis
                         nazovDodavatela: row[columnMap['DODÁVATEĽ']],
                         adresa: `${row[columnMap['ULICA']] || ''} ${row[columnMap['Č. POPISNÉ']] || ''}`.trim(),
                         PSC: row[columnMap['PSC_long']],
@@ -176,7 +87,7 @@ export const agendaConfigs = {
                 templateKey: 'ph',
                 templatePath: TEMPLATE_PATHS.vp.ph, // <-- ZMENA
                 batchSize: 8,
-                title: 'Generovanie podacích hárkov VP',
+                title: 'Podacie hárky',
                 zipName: 'podacieHarky_VP.zip',
                 dataMapper: ({ batch, columnMap, appState }) => {
                     let totalCena = 0;
@@ -195,7 +106,7 @@ export const agendaConfigs = {
                     });
                     return {
                         ...appState.okresData,
-                        'spis-VP': appState.spis.vp,
+                        'spis-VP': appState.spis, // ZMENA: Globálny spis
                         ID_OU: appState.selectedOU.toLowerCase(),
                         ID_PH: "VP",
                         cena: totalCena.toFixed(2),
@@ -210,7 +121,7 @@ export const agendaConfigs = {
                 templateKey: 'zoznamyDoruc',
                 templatePath: TEMPLATE_PATHS.zoznamyDorucenie, // <-- ZMENA
                 groupByColumn: 'MESTO (OBEC)',
-                title: 'Generovanie zoznamov na doručovanie',
+                title: 'Zoznamy na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_VP.zip',
                 dataMapper: ({ groupRows, columnMap, groupKey, appState }) => {
                     const rows = groupRows.map((row, index) => ({
@@ -221,7 +132,7 @@ export const agendaConfigs = {
                     
                     return {
                         ...appState.okresData,
-                        spis_OU: appState.spis.vp,
+                        spis_OU: appState.spis, // ZMENA: Globálny spis
                         Okres: appState.okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
                         obec: groupKey,
                         rows: rows,
@@ -249,7 +160,16 @@ export const agendaConfigs = {
                     const cols = [{ wch: 5 }, { wch: 30 }, { wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 10 }];
                     return { data, cols, groupKey };
                 },
-                fileNameGenerator: (data) => `${data.groupKey.replace(/\s/g, '_')}_vp.xlsx`
+                fileNameGenerator: (data) => `${data.groupKey.replace(/\s/g, '_')}_vp.xlsx`,
+                // === ZMENA: Pridaná šablóna e-mailu ===
+                emailTemplate: (tableHTML) => `
+                    <p>Dobrý deň,</p>
+                    <p style="margin-bottom: 1rem;">zasielame Vám zoznam subjektov, ktorým môže byť uložená v zmysle § 18 zákona č. 319/2002 Z. z. o obrane Slovenskej republiky povinnosť poskytnúť v čase vojny alebo vojnového stavu vecné prostriedky určené na plnenie úloh obrany štátu.</p>
+                    <p>Zoznam:</p>
+                    ${tableHTML}
+                    <p>S pozdravom</p>
+                `
+                // === KONIEC ZMENY ===
             },
         }
     },
@@ -262,62 +182,16 @@ export const agendaConfigs = {
         dataInputs: [
             { id: 'zoznam-subjektov-pp', label: 'Zoznam subjektov (.xlsx)', stateKey: 'subjekty' }
         ],
-        dataProcessor: (data) => {
-            if (!data || !data.subjekty) throw new Error("Chýba vstupný súbor so zoznamom subjektov.");
-            
-            const workbook = XLSX.read(data.subjekty, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            let json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: true });
-
-            let headerRowIndex = -1;
-            for (let i = 0; i < json.length; i++) {
-                if (json[i][2] && String(json[i][2]).includes('Por. číslo')) {
-                    headerRowIndex = i;
-                    break;
-                }
-            }
-            if (headerRowIndex === -1) throw new Error('Nenašiel sa riadok s hlavičkou "Por. číslo" v stĺpci C.');
-
-            const header = json[headerRowIndex].slice(2);
-            const dataRows = json.slice(headerRowIndex + 1);
-
-            let lastRowWithData = -1;
-            for (let i = 0; i < dataRows.length; i++) {
-                if (dataRows[i][2] && String(dataRows[i][2]).trim() !== '') {
-                    lastRowWithData = i;
-                }
-            }
-
-            header.push('Obec');
-            const adresaColumnIndex = header.findIndex(h => h.includes('Miesto pobytu'));
-
-            const processedDataRows = dataRows.slice(0, lastRowWithData + 1).map(row => {
-                const newRow = row.slice(2);
-                const adresaPlna = newRow[adresaColumnIndex] || '';
-                let obec = 'Nezaradené';
-                if (adresaPlna.includes(',')) {
-                    const casti = adresaPlna.split(',');
-                    if (casti.length > 1) {
-                        const pscObec = casti[casti.length - 1].trim();
-                        obec = pscObec.replace(/^\d{3}\s?\d{2}\s+/, '').trim();
-                    }
-                }
-                newRow.push(obec);
-                return newRow;
-            });
-            
-            const finalData = [header, ...processedDataRows];
-
-            if (finalData.length <= 1) throw new Error("Spracovaním nevznikli žiadne dáta.");
-            return finalData;
-        },
+        // === ZMENA: Použitie importovanej funkcie ===
+        dataProcessor: ppDataProcessor,
+        // ==========================================
         generators: {
             rozhodnutia: {
                 type: 'row',
                 buttonId: 'download-rozhodnutia-pp',
                 templateKey: 'rozhodnutia',
                 templatePath: TEMPLATE_PATHS.pp.rozhodnutie, // <-- ZMENA
-                title: 'Generovanie rozhodnutí PP',
+                title: 'Rozhodnutia',
                 zipName: 'rozhodnutia_PP.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
                     const titul = row[columnMap['Titul']] || '';
@@ -330,7 +204,7 @@ export const agendaConfigs = {
                     return {
                         ...appState.okresData,
                         Nazov_OU_upper: appState.okresData.Okresny_urad.toUpperCase(),
-                        'spis-PP': appState.spis.pp,
+                        'spis-PP': appState.spis, // ZMENA: Globálny spis
                         ID_OU: appState.selectedOU.toLowerCase(),
                         menoPriezvisko: `${titul} ${meno} ${priezvisko}`.trim(),
                         adresa: adresaPlna,
@@ -347,7 +221,7 @@ export const agendaConfigs = {
                 buttonId: 'download-obalky-pp',
                 templateKey: 'obalky',
                 templatePath: TEMPLATE_PATHS.pp.obalky, // <-- ZMENA
-                title: 'Generovanie obálok PP',
+                title: 'Obálky',
                 zipName: 'obalky_PP.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
                     const titul = row[columnMap['Titul']] || '';
@@ -362,7 +236,7 @@ export const agendaConfigs = {
 
                     return {
                         ...appState.okresData,
-                        'spis-PP': appState.spis.pp,
+                        'spis-PP': appState.spis, // ZMENA: Globálny spis
                         menoPriezvisko: `${titul} ${meno} ${priezvisko}`.trim(),
                         adresa: adresa,
                         PSC: psc,
@@ -377,7 +251,7 @@ export const agendaConfigs = {
                 templateKey: 'ph',
                 templatePath: TEMPLATE_PATHS.pp.ph, // <-- ZMENA
                 batchSize: 8,
-                title: 'Generovanie podacích hárkov PP',
+                title: 'Podacie hárky',
                 zipName: 'podacieHarky_PP.zip',
                 dataMapper: ({ batch, columnMap, appState }) => {
                     let totalCena = 0;
@@ -403,7 +277,7 @@ export const agendaConfigs = {
                     });
                     return {
                         ...appState.okresData,
-                        'spis-PP': appState.spis.pp,
+                        'spis-PP': appState.spis, // ZMENA: Globálny spis
                         ID_OU: appState.selectedOU.toLowerCase(),
                         ID_PH: "PP",
                         cena: totalCena.toFixed(2),
@@ -418,7 +292,7 @@ export const agendaConfigs = {
                 templateKey: 'zoznamyDoruc',
                 templatePath: TEMPLATE_PATHS.zoznamyDorucenie, // <-- ZMENA
                 groupByColumn: 'Obec',
-                title: 'Generovanie zoznamov na doručovanie',
+                title: 'Zoznamy na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_PP.zip',
                 dataMapper: ({ groupRows, columnMap, groupKey, appState }) => {
                     const rows = groupRows.map((row, index) => {
@@ -433,7 +307,7 @@ export const agendaConfigs = {
                     });
                     return {
                         ...appState.okresData,
-                        spis_OU: appState.spis.pp,
+                        spis_OU: appState.spis, // ZMENA: Globálny spis
                         Okres: appState.okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
                         obec: groupKey,
                         rows: rows,
@@ -453,64 +327,23 @@ export const agendaConfigs = {
         dataInputs: [
             { id: 'zoznam-subjektov-ub', label: 'Zoznam subjektov (.xlsx)', stateKey: 'subjekty' }
         ],
-        dataProcessor: (data) => {
-            if (!data || !data.subjekty) throw new Error("Chýba vstupný súbor so zoznamom subjektov.");
-
-            const workbook = XLSX.read(data.subjekty, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            let json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-            const headerIndex = json.findIndex(row => row.some(cell => String(cell).startsWith('Por. č')));
-            if (headerIndex === -1) throw new Error('Nenašiel sa riadok s hlavičkou "Por. č."');
-            
-            const headers = json[headerIndex];
-            headers.push('Obec');
-            const adresaColumnIndex = headers.findIndex(h => h.includes('sídlo alebo miesto pobytu'));
-            if (adresaColumnIndex === -1) throw new Error("V hlavičke chýba stĺpec s adresou ('sídlo alebo miesto pobytu').");
-
-            const dataRows = json.slice(headerIndex + 1);
-
-            let lastNonEmptyRow = -1;
-            for (let i = 0; i < dataRows.length; i++) {
-                if (!dataRows[i].every(cell => cell === "")) {
-                    lastNonEmptyRow = i;
-                }
-            }
-            
-            const finalDataRows = dataRows.slice(0, lastNonEmptyRow + 1).map(row => {
-                const adresaPlna = row[adresaColumnIndex] || '';
-                let obec = 'Nezaradené';
-                if (adresaPlna.includes(',')) {
-                    const casti = adresaPlna.split(',');
-                    if (casti.length > 1) {
-                        const pscObec = casti[1].trim();
-                        const pscMatch = pscObec.match(/^\d{3}\s?\d{2}\s+(.+)$/);
-                        obec = pscMatch && pscMatch[1] ? pscMatch[1].trim() : pscObec;
-                    }
-                }
-                row.push(obec);
-                return row;
-            });
-
-            const finalData = [headers, ...finalDataRows];
-            
-            if (finalData.length <= 1) throw new Error("Spracovaním nevznikli žiadne dáta.");
-            return finalData;
-        },
+        // === ZMENA: Použitie importovanej funkcie ===
+        dataProcessor: ubDataProcessor,
+        // ==========================================
         generators: {
             rozhodnutia: {
                 type: 'row',
                 buttonId: 'download-rozhodnutia-ub',
                 templateKey: 'rozhodnutia',
                 templatePath: TEMPLATE_PATHS.ub.rozhodnutie, // <-- ZMENA
-                title: 'Generovanie rozhodnutí UB',
+                title: 'Rozhodnutia',
                 zipName: 'rozhodnutia_UB.zip',
                 dataMapper: ({ row, columnMap, appState, index }) => { // <-- Pridaný 'index'
                     const ico = row[columnMap['IČO alebo rodné číslo']] || '';
                     return {
                         ...appState.okresData,
                         Nazov_OU_upper: appState.okresData.Okresny_urad.toUpperCase(),
-                        'spis-UB': appState.spis.ub,
+                        'spis-UB': appState.spis, // ZMENA: Globálny spis
                         ID_OU: appState.selectedOU.toLowerCase(),
                         Vlastnik: row[columnMap['obchodné meno alebo názov alebo meno a priezvisko']],
                         vAdresa: row[columnMap['sídlo alebo miesto pobytu']],
@@ -530,7 +363,7 @@ export const agendaConfigs = {
                 buttonId: 'download-obalky-ub',
                 templateKey: 'obalky',
                 templatePath: TEMPLATE_PATHS.ub.obalky, // <-- ZMENA
-                title: 'Generovanie obálok UB',
+                title: 'Obálky',
                 zipName: 'obalky_UB.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
                     const adresaPlna = row[columnMap['sídlo alebo miesto pobytu']] || '';
@@ -539,7 +372,7 @@ export const agendaConfigs = {
                     const utvarMatch = ziadatel.match(/\d+/);
                     return {
                         ...appState.okresData,
-                        'spis-UB': appState.spis.ub,
+                        'spis-UB': appState.spis, // ZMENA: Globálny spis
                         Vlastnik: row[columnMap['obchodné meno alebo názov alebo meno a priezvisko']],
                         adresa: adresa,
                         PSC: psc,
@@ -554,7 +387,7 @@ export const agendaConfigs = {
                 templateKey: 'ph',
                 templatePath: TEMPLATE_PATHS.ub.ph, // <-- ZMENA
                 batchSize: 8,
-                title: 'Generovanie podacích hárkov UB',
+                title: 'Podacie hárky',
                 zipName: 'podacieHarky_UB.zip',
                 dataMapper: ({ batch, columnMap, appState }) => {
                     let totalCena = 0;
@@ -577,7 +410,7 @@ export const agendaConfigs = {
                     });
                     return {
                         ...appState.okresData,
-                        'spis-UB': appState.spis.ub,
+                        'spis-UB': appState.spis, // ZMENA: Globálny spis
                         ID_OU: appState.selectedOU.toLowerCase(),
                         ID_PH: "UB",
                         cena: totalCena.toFixed(2),
@@ -592,7 +425,7 @@ export const agendaConfigs = {
                 templateKey: 'zoznamyDoruc',
                 templatePath: TEMPLATE_PATHS.zoznamyDorucenie, // <-- ZMENA
                 groupByColumn: 'Obec',
-                title: 'Generovanie zoznamov na doručovanie',
+                title: 'Zoznamy na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_UB.zip',
                 dataMapper: ({ groupRows, columnMap, groupKey, appState }) => {
                     const rows = groupRows.map((row, index) => ({
@@ -602,7 +435,7 @@ export const agendaConfigs = {
                     }));
                     return {
                         ...appState.okresData,
-                        spis_OU: appState.spis.ub,
+                        spis_OU: appState.spis, // ZMENA: Globálny spis
                         Okres: appState.okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
                         obec: groupKey,
                         rows: rows,
@@ -622,60 +455,16 @@ export const agendaConfigs = {
         dataInputs: [
             { id: 'zoznam-subjektov-dr', label: 'Zoznam subjektov (.xlsx)', stateKey: 'subjekty' }
         ],
-        dataProcessor: (data) => {
-            if (!data || !data.subjekty) throw new Error("Chýba vstupný súbor so zoznamom subjektov.");
-
-            const workbook = XLSX.read(data.subjekty, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            let json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-            const headerIndex = json.findIndex(row => row.some(cell => String(cell).trim().startsWith('Por. č')));
-            if (headerIndex === -1) throw new Error('Nenašiel sa riadok s hlavičkou "Por. č."');
-
-            const headers = json[headerIndex];
-            
-            const adresaColumnIndex = headers.findIndex(h => String(h).trim().toLowerCase() === 'adresa trvalého pobytu');
-            if (adresaColumnIndex === -1) {
-                throw new Error("V hlavičke chýba stĺpec s názvom 'adresa trvalého pobytu'.");
-            }
-            
-            headers.push('Obec');
-
-            const dataRows = json.slice(headerIndex + 1);
-
-            let lastNonEmptyRow = -1;
-            for (let i = 0; i < dataRows.length; i++) {
-                if (dataRows[i].some(cell => String(cell).trim() !== '')) {
-                    lastNonEmptyRow = i;
-                }
-            }
-            
-            const finalDataRows = dataRows.slice(0, lastNonEmptyRow + 1).map(row => {
-                const adresaPlna = row[adresaColumnIndex] || '';
-                let obec = 'Nezaradené';
-                if (adresaPlna.includes(',')) {
-                    const casti = adresaPlna.split(',');
-                    if (casti.length > 1) {
-                        const pscObec = casti[casti.length - 1].trim(); 
-                        obec = pscObec.replace(/^\d{3}\s?\d{2}\s+/, '').trim();
-                    }
-                }
-                row.push(obec);
-                return row;
-            });
-            
-            const finalData = [headers, ...finalDataRows];
-
-            if (finalData.length <= 1) throw new Error("Spracovaním nevznikli žiadne dáta.");
-            return finalData;
-        },
+        // === ZMENA: Použitie importovanej funkcie ===
+        dataProcessor: drDataProcessor,
+        // ==========================================
         generators: {
             rozhodnutia: {
                 type: 'row',
                 buttonId: 'download-rozhodnutia-dr',
                 templateKey: 'rozhodnutia',
                 templatePath: TEMPLATE_PATHS.dr.rozhodnutie, // <-- ZMENA
-                title: 'Generovanie rozhodnutí DR',
+                title: 'Rozhodnutia',
                 zipName: 'rozhodnutia_DR.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
                     const findKey = (name) => Object.keys(columnMap).find(key => key.trim().toLowerCase() === name.toLowerCase());
@@ -683,7 +472,7 @@ export const agendaConfigs = {
                     return {
                         ...appState.okresData,
                         Nazov_OU_upper: appState.okresData.Okresny_urad.toUpperCase(),
-                        'spis-DR': appState.spis.dr,
+                        'spis-DR': appState.spis, // ZMENA: Globálny spis
                         ID_OU: appState.selectedOU.toLowerCase(),
                         menoPriezvisko: row[columnMap[findKey('Titul, meno a priezvisko')]],
                         adresa: row[columnMap[findKey('adresa trvalého pobytu')]],
@@ -699,7 +488,7 @@ export const agendaConfigs = {
                 buttonId: 'download-obalky-dr',
                 templateKey: 'obalky',
                 templatePath: TEMPLATE_PATHS.dr.obalky, // <-- ZMENA
-                title: 'Generovanie obálok DR',
+                title: 'Obálky',
                 zipName: 'obalky_DR.zip',
                 dataMapper: ({ row, columnMap, appState }) => {
                     const findKey = (name) => Object.keys(columnMap).find(key => key.trim().toLowerCase() === name.toLowerCase());
@@ -715,7 +504,7 @@ export const agendaConfigs = {
                     
                     return {
                         ...appState.okresData,
-                        'spis-DR': appState.spis.dr,
+                        'spis-DR': appState.spis, // ZMENA: Globálny spis
                         menoPriezvisko: row[columnMap[findKey('Titul, meno a priezvisko')]],
                         adresa: adresa,
                         PSC: psc,
@@ -729,7 +518,7 @@ export const agendaConfigs = {
                 templateKey: 'ph',
                 templatePath: TEMPLATE_PATHS.dr.ph, // <-- ZMENA
                 batchSize: 8,
-                title: 'Generovanie podacích hárkov DR',
+                title: 'Podacie hárky',
                 zipName: 'podacieHarky_DR.zip',
                 dataMapper: ({ batch, columnMap, appState }) => {
                     let totalCena = 0;
@@ -757,7 +546,7 @@ export const agendaConfigs = {
                     });
                     return {
                         ...appState.okresData,
-                        'spis-DR': appState.spis.dr,
+                        'spis-DR': appState.spis, // ZMENA: Globálny spis
                         ID_OU: appState.selectedOU.toLowerCase(),
                         ID_PH: "DR",
                         cena: totalCena.toFixed(2),
@@ -772,7 +561,7 @@ export const agendaConfigs = {
                 templateKey: 'zoznamyDoruc',
                 templatePath: TEMPLATE_PATHS.zoznamyDorucenie, // <-- ZMENA
                 groupByColumn: 'Obec',
-                title: 'Generovanie zoznamov na doručovanie',
+                title: 'Zoznamy na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_DR.zip',
                 dataMapper: ({ groupRows, columnMap, groupKey, appState }) => {
                     const findKey = (name) => Object.keys(columnMap).find(key => key.trim().toLowerCase() === name.toLowerCase());
@@ -783,7 +572,7 @@ export const agendaConfigs = {
                     }));
                     return {
                         ...appState.okresData,
-                        spis_OU: appState.spis.dr,
+                        spis_OU: appState.spis, // ZMENA: Globálny spis
                         Okres: appState.okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
                         obec: groupKey,
                         rows: rows,

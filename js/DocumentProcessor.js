@@ -1,6 +1,7 @@
 // js/DocumentProcessor.js
 
-import { showNotification, toggleSpinner, createProgressTracker, showErrorModal, setButtonState } from './ui.js';
+// Odstránené 'createProgressTracker' z importu
+import { showNotification, toggleSpinner, showErrorModal, setButtonState } from './ui.js';
 
 export class DocumentProcessor {
     constructor(config) {
@@ -9,7 +10,7 @@ export class DocumentProcessor {
             data: {},
             templates: {}, // Tento objekt sa teraz bude plniť postupne
             processedData: null,
-            appState: config.appState,
+            appState: config.appState, // appState sa stále číta, ale už sa do neho nezapisuje
         };
     }
 
@@ -116,7 +117,9 @@ export class DocumentProcessor {
         headers.forEach(h => tableHTML += `<th>${h}</th>`);
         tableHTML += '</tr></thead><tbody>';
 
-        rows.forEach(row => {
+        // === ZMENA: Pridaný 'index' do forEach pre animáciu ===
+        rows.forEach((row, index) => {
+        // === KONIEC ZMENY ===
             let rowIssues = [];
             if (this.config.validators) {
                 this.config.validators.forEach(validator => {
@@ -130,7 +133,10 @@ export class DocumentProcessor {
             const isError = rowIssues.length > 0;
             if (isError) issuesCount++;
             
-            tableHTML += `<tr class="${isError ? 'row-error' : ''}" title="${rowIssues.join('\n')}">`;
+            // === ZMENA: Pridaný inline štýl s premennou --row-index ===
+            tableHTML += `<tr class="${isError ? 'row-error' : ''}" title="${rowIssues.join('\n')}" style="--row-index: ${index};">`;
+            // === KONIEC ZMENY ===
+            
             headers.forEach((_, index) => {
                 tableHTML += `<td>${row[index] || ''}</td>`;
             });
@@ -156,7 +162,7 @@ export class DocumentProcessor {
             if(btn) {
                 // ZMENA: Kontrola načítania šablóny je odstránená, pretože to už nie je podmienka pre aktiváciu tlačidla.
                 const dataProcessed = !!this.state.processedData;
-                const spisFilled = (this.config.sectionPrefix && this.state.appState.spis) ? !!this.state.appState.spis[this.config.sectionPrefix] : true;
+                const spisFilled = !!this.state.appState.spis; // ZMENA: Kontroluje globálny spis
                 const ouSelected = !!this.state.appState.selectedOU;
 
                 const isReady = dataProcessed && spisFilled && ouSelected;
@@ -169,15 +175,26 @@ export class DocumentProcessor {
     async generateRowByRow(generatorKey) {
         const generator = this.config.generators[generatorKey];
         const button = document.getElementById(generator.buttonId);
+        
+        const originalButtonText = button.querySelector('.btn-text')?.textContent || (generator.outputType === 'xlsx' ? 'Exportovať (.xlsx)' : 'Generovať (.docx)');
+
+        const docBox = button.closest('.doc-box');
+        
+        // --- ODSTRÁNENÁ LOGIKA PRE PROGRESS BAR A PROGRESS FILL ---
+
         if (!this.state.processedData || this.state.processedData.length === 0) {
             showErrorModal({ message: 'Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.' });
             return;
         }
         
-        setButtonState(button, 'loading', 'Generujem...');
+        // Nastavenie loading s pôvodným textom.
+        setButtonState(button, 'loading', originalButtonText); 
+
+        if (docBox) {
+            docBox.classList.remove('is-success', 'is-error');
+        }
 
         try {
-            // === ZMENA: Lazy Loading šablóny ===
             if (generator.templateKey && generator.templatePath) {
                 await this._ensureTemplateLoaded(generator.templateKey, generator.templatePath);
             }
@@ -187,9 +204,17 @@ export class DocumentProcessor {
             const columnMap = this.createColumnMap(headerRow);
             
             const zip = new JSZip();
-            const tracker = createProgressTracker(dataRows.length, generator.title);
+            
+            const dataLength = dataRows.length;
+            
+            // --- ODSTRÁNENÁ LOGIKA PRE PROGRESS BAR, POUŽÍVAME JEDNODUCHÝ SPIN ---
+            
+            // === ZMENA: Pridanie pauzy pre responzívnosť UI ===
+            const pauseDuration = 1; // 1ms pauza
+            const pauseBatchSize = 20; // Každých 20 dokumentov
+            // === KONIEC ZMENY ===
 
-            for (let i = 0; i < dataRows.length; i++) {
+            for (let i = 0; i < dataLength; i++) {
                 const row = dataRows[i];
                 if (this.isRowEmpty(row)) continue;
 
@@ -203,37 +228,71 @@ export class DocumentProcessor {
                 const outputBuffer = doc.getZip().generate({ type: 'uint8array' });
                 const fileName = generator.fileNameGenerator(templateData, i);
                 zip.file(fileName, outputBuffer);
-
-                tracker.increment(`Generujem ${i + 1} / ${dataRows.length}: ${fileName}`);
-                if(i % 10 === 0) await new Promise(r => setTimeout(r, 0));
+                
+                // === ZMENA: Vloženie pauzy po dávke ===
+                if ((i + 1) % pauseBatchSize === 0 && i + 1 < dataLength) {
+                    // Aktualizujeme text tlačidla, aby používateľ videl progres
+                    const btnTextSpan = button.querySelector('.btn-text');
+                    if(btnTextSpan) {
+                        btnTextSpan.textContent = `Generujem... (${i + 1}/${dataLength})`;
+                    }
+                    // Uvoľníme vlákno
+                    await new Promise(r => setTimeout(r, pauseDuration));
+                }
+                // === KONIEC ZMENY ===
             }
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
-            tracker.close();
-            // --- ZMENA 1/3: Špecifická notifikácia ---
             showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
+
+            // --- KĽÚČOVÁ ZMENA: Nastavíme stav na úspech, text sa NEMENÍ ---
+            setButtonState(button, 'success', originalButtonText); 
+            
+            if (docBox) {
+                docBox.classList.remove('is-processing');
+            }
 
         } catch (error) {
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
+             if (docBox) {
+                docBox.classList.remove('is-processing');
+             }
+             setButtonState(button, 'reset', originalButtonText);
         } finally {
-            const originalButtonText = button.textContent.includes('Exportovať') ? 'Exportovať (.xlsx)' : 'Generovať (.docx)';
-            setButtonState(button, 'reset', originalButtonText);
+            // Resetuje tlačidlo do pôvodného stavu (po krátkom zobrazení úspechu)
+            if (button.classList.contains('is-success')) {
+                setTimeout(() => {
+                    // KĽÚČOVÉ: Vrátime tlačidlo na pôvodnú farbu a stav (oranžový/zelený)
+                    setButtonState(button, 'reset', originalButtonText); 
+                }, 1000); // 1 sekunda trvania zeleného stavu
+            } else if (button.classList.contains('is-loading')) { // Ak proces zlyhal skôr, než skončil
+                setButtonState(button, 'reset', originalButtonText);
+            }
         }
     }
-
+    
     async generateInBatches(generatorKey) {
         const generator = this.config.generators[generatorKey];
         const button = document.getElementById(generator.buttonId);
+
+        const originalButtonText = button.querySelector('.btn-text')?.textContent || (generator.outputType === 'xlsx' ? 'Exportovať (.xlsx)' : 'Generovať (.docx)');
+
+        const docBox = button.closest('.doc-box');
+
         if (!this.state.processedData || this.state.processedData.length === 0) {
             showErrorModal({ message: 'Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.' });
             return;
         }
         
-        setButtonState(button, 'loading', 'Generujem...');
+        // Nastavenie loading s pôvodným textom.
+        setButtonState(button, 'loading', originalButtonText); 
+        
+        if (docBox) {
+            docBox.classList.remove('is-success', 'is-error');
+        }
         
         try {
-            // === ZMENA: Lazy Loading šablóny ===
             if (generator.templateKey && generator.templatePath) {
                 await this._ensureTemplateLoaded(generator.templateKey, generator.templatePath);
             }
@@ -245,7 +304,7 @@ export class DocumentProcessor {
             const totalBatches = Math.ceil(dataRows.length / batchSize);
             
             const zip = new JSZip();
-            const tracker = createProgressTracker(totalBatches, generator.title);
+            const pauseDuration = 20; 
 
             for (let i = 0; i < totalBatches; i++) {
                 const batchStart = i * batchSize;
@@ -263,34 +322,57 @@ export class DocumentProcessor {
                 const fileName = generator.fileNameGenerator(templateData, i);
                 zip.file(fileName, outputBuffer);
                 
-                tracker.increment(`Generujem dávku ${i + 1} / ${totalBatches}`);
-                await new Promise(r => setTimeout(r, 0));
+                await new Promise(r => setTimeout(r, pauseDuration));
             }
             
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
-            tracker.close();
-            // --- ZMENA 2/3: Špecifická notifikácia ---
             showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
+
+            // --- KĽÚČOVÁ ZMENA: Nastavíme stav na úspech, text sa NEMENÍ ---
+            setButtonState(button, 'success', originalButtonText); 
+            
+            if (docBox) {
+                docBox.classList.remove('is-processing');
+            }
 
         } catch (error) {
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
+             if (docBox) {
+                docBox.classList.remove('is-processing');
+             }
+             setButtonState(button, 'reset', originalButtonText);
         } finally {
-            const originalButtonText = button.textContent.includes('Exportovať') ? 'Exportovať (.xlsx)' : 'Generovať (.docx)';
-            setButtonState(button, 'reset', originalButtonText);
+             // Resetuje tlačidlo do pôvodného stavu (po krátkom zobrazení úspechu)
+            if (button.classList.contains('is-success')) {
+                setTimeout(() => {
+                    // KĽÚČOVÉ: Vrátime tlačidlo na pôvodnú farbu a stav
+                    setButtonState(button, 'reset', originalButtonText); 
+                }, 1000); // 1 sekunda trvania zeleného stavu
+            } else if (button.classList.contains('is-loading')) { // Ak proces zlyhal skôr, než skončil
+                setButtonState(button, 'reset', originalButtonText);
+            }
         }
     }
 
     async generateByGroup(generatorKey) {
         const generator = this.config.generators[generatorKey];
         const button = document.getElementById(generator.buttonId);
-        const originalButtonText = button.querySelector('.btn-text')?.textContent || 'Exportovať (.xlsx)';
+        const originalButtonText = button.querySelector('.btn-text')?.textContent || (generator.outputType === 'xlsx' ? 'Exportovať (.xlsx)' : 'Generovať (.docx)');
+        
+        const docBox = button.closest('.doc-box');
+
         if (!this.state.processedData || this.state.processedData.length === 0) {
             showErrorModal({ message: 'Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.' });
             return;
         }
 
-        setButtonState(button, 'loading', 'Exportujem...');
+        // Nastavenie loading s pôvodným textom.
+        setButtonState(button, 'loading', originalButtonText); 
+
+        if (docBox) {
+            docBox.classList.remove('is-success', 'is-error');
+        }
         
         try {
             if (generator.templateKey && generator.templatePath) {
@@ -315,22 +397,23 @@ export class DocumentProcessor {
 
             const zip = new JSZip();
             const totalGroups = Object.keys(groupedData).length;
-            const tracker = createProgressTracker(totalGroups, generator.title);
-            let currentGroup = 0;
             
-            if (generatorKey === 'zoznamyObce') {
-                this.state.appState.municipalitiesMailContent = {};
-                this.state.appState.zoznamyPreObceGenerated = false;
+            const pauseDuration = 20; 
+            
+            // === ZMENA: Volanie callbacku na resetovanie stavu mailov ===
+            if (generatorKey === 'zoznamyObce' && this.config.onMailGenerationStart) {
+                this.config.onMailGenerationStart();
             }
+            // ========================================================
 
             for (const groupKey in groupedData) {
-                currentGroup++;
                 const groupRows = groupedData[groupKey];
                 
                 const templateData = generator.dataMapper({ groupRows, columnMap, groupKey, appState: this.state.appState });
                 const fileName = generator.fileNameGenerator(templateData, 0);
 
                 if (generator.outputType === 'xlsx') {
+                    // ... (XLSX logika bezo zmeny) ...
                     const excelData = templateData;
                     const ws = XLSX.utils.json_to_sheet(excelData.data);
                     ws['!cols'] = excelData.cols;
@@ -339,24 +422,17 @@ export class DocumentProcessor {
                     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                     zip.file(fileName, excelBuffer);
 
-                    // --- ZAČIATOK ÚPRAVY: Generovanie HTML tabuľky pre email ---
+                    // ... (logika pre maily bezo zmeny) ...
                     if (generatorKey === 'zoznamyObce') {
                         const headers = Object.keys(excelData.data[0]);
-                        
-                        // Vytvorenie hlavičky tabuľky
                         const tableHeader = headers.map(h => `<th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">${h}</th>`).join('');
-
-                        // Vytvorenie riadkov tabuľky
                         const tableRows = excelData.data.map(row => {
                             const cells = headers.map(h => `<td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">${row[h]}</td>`).join('');
                             return `<tr>${cells}</tr>`;
                         }).join('');
-
-                        // Zostavenie celého HTML tela e-mailu
-                        const mailBody = `
-                            <p>Dobrý deň,</p>
-                            <p style="margin-bottom: 1rem;">zasielame Vám zoznam subjektov, ktorým môže byť uložená v zmysle § 18 zákona č. 319/2002 Z. z. o obrane Slovenskej republiky povinnosť poskytnúť v čase vojny alebo vojnového stavu vecné prostriedky určené na plnenie úloh obrany štátu.</p>
-                            <p>Zoznam:</p>
+                        
+                        // === ZAČIATOK ZMENY: Oddelenie šablóny e-mailu ===
+                        const tableHTML = `
                             <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px;">
                                 <thead>
                                     <tr style="background-color: #f2f2f2;">
@@ -367,19 +443,26 @@ export class DocumentProcessor {
                                     ${tableRows}
                                 </tbody>
                             </table>
-                            <p>S pozdravom</p>
                         `;
                         
-                        // --- ZMENA: Ukladáme objekt s HTML a počtom riadkov ---
-                        this.state.appState.municipalitiesMailContent[groupKey] = {
-                            html: mailBody,
-                            count: groupRows.length
-                        };
-                        // --- KONIEC ZMENY ---
+                        // Použije šablónu z configu, ak existuje, inak pošle len tabuľku
+                        const mailBody = (typeof generator.emailTemplate === 'function') 
+                            ? generator.emailTemplate(tableHTML) 
+                            : tableHTML;
+                        // === KONIEC ZMENY ===
+                        
+                        // === ZMENA: Volanie callbacku namiesto priameho zápisu ===
+                        if (this.config.onMailDataGenerated) {
+                            const mailData = {
+                                html: mailBody,
+                                count: groupRows.length
+                            };
+                            this.config.onMailDataGenerated(groupKey, mailData);
+                        }
+                        // =======================================================
                     }
-                    // --- KONIEC ÚPRAVY ---
-
                 } else {
+                    // ... (DOCX logika bezo zmeny) ...
                     const templateContent = this.state.templates[generator.templateKey];
                     if (!templateContent) throw new Error(`Chýba šablóna pre: ${generator.title}`);
                     
@@ -389,27 +472,44 @@ export class DocumentProcessor {
                     zip.file(fileName, outputBuffer);
                 }
                 
-                tracker.increment(`Spracúvam skupinu ${currentGroup} / ${totalGroups}: ${groupKey}`);
-                await new Promise(r => setTimeout(r, 0));
+                await new Promise(r => setTimeout(r, pauseDuration));
             }
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
-            tracker.close();
             
-            if (generatorKey === 'zoznamyObce') {
-                this.state.appState.zoznamyPreObceGenerated = true;
-                if (this.config.onDataProcessed) {
-                    this.config.onDataProcessed();
-                }
+            // === ZMENA: Volanie callbacku o dokončení ===
+            if (generatorKey === 'zoznamyObce' && this.config.onMailGenerationComplete) {
+                this.config.onMailGenerationComplete();
+                // Odstránené volanie this.config.onDataProcessed();
             }
+            // =========================================
 
             showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
 
+            // --- KĽÚČOVÁ ZMENA: Nastavíme stav na úspech, text sa NEMENÍ ---
+            setButtonState(button, 'success', originalButtonText); 
+
+            if (docBox) {
+                docBox.classList.remove('is-processing');
+            }
+
         } catch (error) {
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
+             if (docBox) {
+                docBox.classList.remove('is-processing');
+             }
+             setButtonState(button, 'reset', originalButtonText);
         } finally {
-            setButtonState(button, 'reset', originalButtonText);
+            // Resetuje tlačidlo do pôvodného stavu (po krátkom zobrazení úspechu)
+            if (button.classList.contains('is-success')) {
+                setTimeout(() => {
+                    // KĽÚČOVÉ: Vrátime tlačidlo na pôvodnú farbu a stav
+                    setButtonState(button, 'reset', originalButtonText); 
+                }, 1000); // 1 sekunda trvania zeleného stavu
+            } else if (button.classList.contains('is-loading')) { // Ak proces zlyhal skôr, než skončil
+                setButtonState(button, 'reset', originalButtonText);
+            }
         }
     }
 
