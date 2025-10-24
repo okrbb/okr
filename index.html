@@ -16,42 +16,38 @@
     <script src="https://unpkg.com/pizzip@3.1.1/dist/pizzip.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.57.3/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-</head>
+    
+    <style>
+        /* Štýly pre .main-view boli presunuté do _layout.css pre plynulejší prechod */
+    </style>
+    </head>
 <body>
     <div class="dashboard-container">
         <aside class="dashboard-sidebar">
             <div class="sidebar-header">
-                <h3>Ovládací panel</h3>
+                <img src="css/logo.png" alt="Logo OKR" class="sidebar-logo">
+                <h3>OKR</h3>
             </div>
             
-            <ul class="sidebar-steps">
-                <li id="sidebar-step-1" class="sidebar-step is-active" data-step="1">
-                    <label for="okresny-urad" class="step-header">Okresný úrad</label>
-                    <div class="step-content">
-                        <div id="ou-select-wrapper" class="select-item">
-                            <i class="fas fa-building"></i>
-                            <select name="okresny-urad" id="okresny-urad">
-                                <option value="">--- Prosím, vyberte OÚ ---</option>
-                            </select>
-                        </div>
-                    </div>
-                </li>
-                <li id="sidebar-step-2" class="sidebar-step" data-step="2">
-                    <label class="step-header">Agenda</label>
-                    <div class="step-content agenda-selection">
-                        <div class="agenda-card" data-agenda="vp"><i class="fas fa-truck"></i><span>Vecné prostriedky</span></div>
-                        <div class="agenda-card" data-agenda="pp"><i class="fas fa-briefcase"></i><span>Pracovná povinnosť</span></div>
-                        <div class="agenda-card" data-agenda="ub"><i class="fas fa-bed"></i><span>Ubytovanie</span></div>
-                        <div class="agenda-card" data-agenda="dr"><i class="fas fa-envelopes-bulk"></i><span>Doručovatelia</span></div>
-                    </div>
-                </li>
-                <li id="sidebar-step-3" class="sidebar-step" data-step="3">
-                    <label class="step-header">Odoslanie pošty</label>
-                    <div class="step-content action-selection">
-                        <div id="send-mail-btn" class="agenda-card"><i class="fas fa-paper-plane"></i><span>Poslať mail</span></div>
-                    </div>
-                </li>
-            </ul>
+            <div class="sidebar-context">
+                <label for="okresny-urad" class="context-label">Pracovisko</label>
+                <div id="ou-select-wrapper" class="select-item">
+                    <i class="fas fa-building"></i>
+                    <select name="okresny-urad" id="okresny-urad">
+                        <option value="">--- Prosím, vyberte OÚ ---</option>
+                    </select>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <label class="context-label">Agendy</label>
+                <ul class="nav-list" id="agenda-navigation">
+                    <li><a href="#" class="nav-link" data-agenda="vp"><i class="fas fa-truck"></i><span>Vecné prostriedky</span></a></li>
+                    <li><a href="#" class="nav-link" data-agenda="pp"><i class="fas fa-briefcase"></i><span>Pracovná povinnosť</span></a></li>
+                    <li><a href="#" class="nav-link" data-agenda="ub"><i class="fas fa-bed"></i><span>Ubytovanie</span></a></li>
+                    <li><a href="#" class="nav-link" data-agenda="dr"><i class="fas fa-envelopes-bulk"></i><span>Doručovatelia</span></a></li>
+                </ul>
+            </nav>
             
             <div class="sidebar-footer">
                 <div class="notification-bell-wrapper" data-tooltip="Notifikácie">
@@ -77,15 +73,72 @@
         </aside>
 
         <main id="dashboard-content" class="dashboard-content">
-            <div class="welcome-message">
-                <i class="fas fa-hand-pointer"></i>
-                <h2>Vitajte v aplikácii</h2>
-                <p>Prosím, začnite výberom okresného úradu v paneli vľavo.</p>
+            
+            <div id="welcome-view" class="main-view active">
+                <div class="welcome-message" style="height: calc(100vh - 4rem);">
+                    <i class="fas fa-hand-pointer"></i>
+                    <h2>Vitajte v aplikácii</h2>
+                    <p>Prosím, začnite výberom okresného úradu v paneli vľavo.</p>
+                </div>
             </div>
+
+            <div id="agenda-view" class="main-view">
+                <div class="content-header">
+                    <h2></h2>
+                    <div class="header-meta">
+                        <div class="selection-summary">
+                            <strong>Okresný úrad:</strong> <span></span>
+                        </div>
+                        <div class="spis-display spis-display--editable" data-tooltip="Kliknutím zmeníte číslo spisu">
+                            <i class="fas fa-folder"></i>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="agenda-tabs-container">
+                    <button class="agenda-tab active" data-tab="spracovanie">
+                        <i class="fas fa-sign-in-alt"></i> 1. Spracovanie dát
+                    </button>
+                    <button class="agenda-tab is-disabled" data-tab="generovanie">
+                        <i class="fas fa-file-export"></i> 2. Generovanie
+                    </button>
+                </div>
+
+                <div class="agenda-tab-content-wrapper">
+                    <div id="tab-spracovanie" class="agenda-tab-content active">
+                        <div class="workflow-step" style="padding: 1.5rem 2rem;">
+                            <h3>Vstupné súbory</h3>
+                            <div id="file-inputs-container" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+                        </div>
+                        <div class="workflow-step" style="margin-top: 2rem; padding: 1.5rem 2rem;">
+                            <h3>Náhľad a kontrola dát</h3>
+                            <div id="preview-container" class="data-preview">
+                                <div class="empty-state-placeholder">
+                                    <i class="fas fa-file-import"></i>
+                                    <h4>Náhľad sa zobrazí po nahratí súborov</h4>
+                                    <p>Začnite nahratím vstupných súborov.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-generovanie" class="agenda-tab-content">
+                        <div class="workflow-step" style="padding: 1.5rem 2rem;">
+                            <h3>Generovanie dokumentov</h3>
+                            <div id="generators-container" class="generators-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="help-view" class="main-view">
+                </div>
+
         </main>
-    </div>
+        </div>
     
-    <div id="spinner-overlay" class="spinner-overlay"><div class="spinner"></div></div>
+    <div id="spinner-overlay" class="spinner-overlay" style="display: flex;"><div class="spinner"></div></div>
     <div id="modal-container"></div>
     
     <script src="js/config.js" type="module"></script>
@@ -94,7 +147,13 @@
     <script src="js/agendaConfigFactory.js" type="module"></script>
     <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
     <script src="js/tour.js" type="module"></script>
-    <script src="js/mail-config.js" type="module"></script>
     <script src="js/main-wizard.js" type="module"></script>
+
+    <div id="spinner-overlay" class="spinner-overlay" style="display: flex;"><div class="spinner"></div></div>
+    <div id="modal-container"></div>
+    
+    <div id="notification-toast-container"></div> 
+    
+    <script src="js/config.js" type="module"></script>
 </body>
 </html>
