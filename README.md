@@ -1,4 +1,4 @@
-`#800000` **Štruktúra (HTML)**
+**Štruktúra (HTML)**
 
 -index.html-
 --
