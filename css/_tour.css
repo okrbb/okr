@@ -1,0 +1,24 @@
+/* js/_tour.css */
+/* ====================================================== */
+/* === REDIZAJN: Štýly pre Sprievodcu (Shepherd.js) ===== */
+/* ====================================================== */
+.tour-header { display: flex; align-items: center; gap: 1rem; width: 100%; }
+.tour-step-indicator { background-color: var(--primary-color-light); color: var(--primary-color); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
+.tour-header h3 { margin: 0; font-size: 1.25rem; color: var(--secondary-color); font-weight: 600; }
+.shepherd-element.shepherd-custom-theme { border-radius: var(--border-radius); box-shadow: var(--box-shadow-lg); }
+.shepherd-custom-theme .shepherd-header { padding: 1rem 1.5rem 0.5rem 1.5rem; background-color: transparent; }
+.shepherd-custom-theme .shepherd-text { padding: 0.5rem 1.5rem 1rem 1.5rem; font-size: 0.95rem; }
+.shepherd-custom-theme .shepherd-footer { padding: 0 1.5rem 1.5rem; }
+.shepherd-custom-theme .shepherd-button { margin: 0 0.25rem; padding: 0.6rem 1.2rem; border: 2px solid transparent; border-radius: var(--border-radius); font-weight: 600; transition: var(--transition); background-clip: padding-box; }
+.shepherd-custom-theme .shepherd-button:hover { transform: translateY(-2px); box-shadow: var(--box-shadow); }
+.shepherd-custom-theme .shepherd-button:not(.shepherd-button-secondary) { background-color: var(--accent-color); color: var(--secondary-color); }
+.shepherd-custom-theme .shepherd-button:not(.shepherd-button-secondary):hover { background-color: #F57C00; color: var(--secondary-color); }
+.shepherd-custom-theme .shepherd-button-secondary { background-color: transparent; color: var(--secondary-color); border: 2px solid var(--border-color); }
+.shepherd-custom-theme .shepherd-button-secondary:hover { background-color: var(--background-color); border-color: #bdbdbd; color: var(--secondary-color); }
+.shepherd-custom-theme .shepherd-cancel-link { transition: color 0.2s ease; }
+.shepherd-custom-theme .shepherd-cancel-icon:hover { color: var(--danger-color) !important; }
+
+/* Posledná úprava - odstránenie paddingu, ktorý bol potrebný pre kroky */
+#sidebar-step-2 .step-content {
+    padding-bottom: 0;
+}

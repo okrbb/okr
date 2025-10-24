@@ -1,0 +1,26 @@
+/* js/_variables.css */
+/* ================================================= */
+/* === ZÁKLADNÉ PREMENNÉ A NASTAVENIA (REDESIGN) === */
+/* ================================================= */
+
+:root {
+    /* Paleta farieb odvodená z loga */
+    --primary-color: #004080; /* Tmavá modrá z loga #002D62*/
+    --primary-color-light: #E6ECF3; /* Svetlá modrá (odtieň) */
+    --secondary-color: #424242; /* Ponechaná pre text */
+    --accent-color: #FF9800; /* Oranžová/zlatá z loga */
+    --light-color: #ffffff;
+    --background-color: #f5f7fa;
+    --border-color: #e0e0e0;
+    
+    --success-color: #4CAF50; /* Ponechaná zelená */
+    --warning-color: #FF9800; /* Oranžová je vhodná aj pre varovanie */
+    --danger-color: #f44336; /* Ponechaná červená */
+    --disabled-color: #eeeeee;
+
+    /* Modernejšie tiene a zaoblenie */
+    --box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* */
+    --box-shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.1);
+    --border-radius: 12px;
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}

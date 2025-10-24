@@ -1,0 +1,283 @@
+/* js/_layout.css */
+/* ================================================= */
+/* === ZÁKLADNÝ RESET A LAYOUT ===================== */
+/* ================================================= */
+@keyframes pop-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
+    background-color: var(--background-color);
+    color: var(--secondary-color);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* ================================================= */
+/* === NOVÝ DASHBOARD LAYOUT ======================= */
+/* ================================================= */
+
+.dashboard-container { display: flex; height: 100vh; }
+
+.dashboard-sidebar {
+    width: 300px; /* Mierna úprava šírky */
+    background-color: var(--light-color);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow-lg);
+    z-index: 10;
+}
+
+.sidebar-header {
+    margin-bottom: 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+.sidebar-logo {
+    width: 70px; /* Prispôsobte veľkosť podľa loga */
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary-color-light);
+}
+.sidebar-header h3 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    line-height: 1.2;
+}
+
+.sidebar-context {
+    margin-bottom: 1.5rem;
+}
+.context-label {
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin-bottom: 0.75rem;
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Odstránené všetky .sidebar-step štýly */
+
+.sidebar-nav {
+    flex-grow: 1;
+}
+.nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+.nav-link.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    background: var(--disabled-color);
+}
+.nav-link:not(.disabled):hover {
+    background-color: var(--primary-color-light);
+    color: var(--primary-color);
+}
+.nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--box-shadow);
+}
+.nav-link i {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    justify-content: space-around;
+    align-items: center;
+}
+.sidebar-footer .btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 1rem;
+}
+
+#reset-app-btn { background-color: var(--secondary-color); }
+#reset-app-btn:hover:not(:disabled) { background-color: var(--danger-color); }
+
+.dashboard-content {
+    flex: 1;
+    padding: 2rem 3rem;
+    overflow-y: auto;
+    overflow-x: hidden; /* <-- OPRAVA PRE TABUĽKU */
+
+    /* === ZMENA: Grid pre plynulé prepínanie pohľadov === */
+    display: grid;
+    grid-template-areas: "main-content";
+}
+.welcome-message { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: #757575; }
+.welcome-message i { font-size: 4rem; margin-bottom: 1.5rem; color: var(--primary-color-light); }
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.content-header h2 { font-size: 2rem; color: var(--secondary-color); }
+.header-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+.selection-summary { font-size: 1rem; font-weight: 500; text-align: right; }
+.selection-summary strong { color: var(--primary-color); }
+
+.spis-display {
+    background-color: var(--primary-color-light);
+    color: var(--primary-color);
+    padding: 0.4rem 1rem;
+    border-radius: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.spis-display i {
+    font-size: 0.8rem;
+}
+
+/* === NOVÝ ŠTÝL PRE EDITÁCIU SPISU === */
+.spis-display--editable {
+    cursor: pointer;
+    transition: var(--transition);
+}
+.spis-display--editable:hover {
+    background-color: #D9E3EE; /* Tmavšia verzia --primary-color-light */
+    box-shadow: var(--box-shadow);
+}
+/* === KONIEC NOVÉHO ŠTÝLU === */
+
+.workflow-container { display: flex; flex-direction: column; gap: 2rem; }
+.workflow-step { background-color: var(--light-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); border: 1px solid transparent; transition: var(--transition); }
+/* Obal pre obsah tabov */
+.agenda-tab-content-wrapper { 
+    padding-top: 2rem;
+    display: grid;
+    grid-template-areas: "content";
+}
+/* Samotný obsah tabu */
+.agenda-tab-content {
+    grid-area: content;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    min-width: 0; /* <-- OPRAVA PRE TABUĽKU */
+}
+.agenda-tab-content.active {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    animation: fadeIn 0.5s;
+}
+.workflow-step h3 { color: var(--primary-color); margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 2px solid var(--primary-color-light); display: flex; align-items: center; gap: 0.75rem; }
+
+/* === NOVÉ ŠTÝLY PRE TABY === */
+.agenda-tabs-container {
+    display: flex;
+    border-bottom: 2px solid var(--border-color);
+}
+.agenda-tab {
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    color: #757575;
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+}
+.agenda-tab:hover {
+    color: var(--primary-color);
+}
+.agenda-tab.active {
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.agenda-tab.is-disabled {
+    color: #bdbdbd;
+    cursor: not-allowed;
+    background-color: var(--background-color);
+}
+.agenda-tab.is-disabled:hover {
+    color: #bdbdbd;
+}
+
+/* === PRIDANÁ ZMENA: Animácia pre odomknutú kartu === */
+.agenda-tab[data-tab="generovanie"]:not(.is-disabled) {
+    /* Využíva @keyframes pulse z _components.css */
+    animation: pulse 1.5s infinite; 
+}
+/* === KONIEC ZMENY === */
+
+
+/* === PRIDANÁ ZMENA: Plynulé prepínanie hlavných pohľadov (nahrádza <style> v index.html) === */
+.main-view {
+    grid-area: main-content; /* Priradí pohľad do gridu definovaného v .dashboard-content */
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+    visibility: hidden;
+    /* Pôvodný štýl z index.html bol `display: none` */
+}
+.main-view.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    visibility: visible;
+    display: block; /* Pôvodný štýl z index.html */
+    /* Ponechávame aj pôvodnú animáciu pre kompatibilitu */
+    animation: fadeIn 0.5s; 
+}
+/* === KONIEC ZMENY === */
