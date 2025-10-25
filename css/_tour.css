@@ -3,22 +3,111 @@
 /* === REDIZAJN: Štýly pre Sprievodcu (Shepherd.js) ===== */
 /* ====================================================== */
 .tour-header { display: flex; align-items: center; gap: 1rem; width: 100%; }
-.tour-step-indicator { background-color: var(--primary-color-light); color: var(--primary-color); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
-.tour-header h3 { margin: 0; font-size: 1.25rem; color: var(--secondary-color); font-weight: 600; }
-.shepherd-element.shepherd-custom-theme { border-radius: var(--border-radius); box-shadow: var(--box-shadow-lg); }
-.shepherd-custom-theme .shepherd-header { padding: 1rem 1.5rem 0.5rem 1.5rem; background-color: transparent; }
-.shepherd-custom-theme .shepherd-text { padding: 0.5rem 1.5rem 1rem 1.5rem; font-size: 0.95rem; }
-.shepherd-custom-theme .shepherd-footer { padding: 0 1.5rem 1.5rem; }
-.shepherd-custom-theme .shepherd-button { margin: 0 0.25rem; padding: 0.6rem 1.2rem; border: 2px solid transparent; border-radius: var(--border-radius); font-weight: 600; transition: var(--transition); background-clip: padding-box; }
-.shepherd-custom-theme .shepherd-button:hover { transform: translateY(-2px); box-shadow: var(--box-shadow); }
-.shepherd-custom-theme .shepherd-button:not(.shepherd-button-secondary) { background-color: var(--accent-color); color: var(--secondary-color); }
-.shepherd-custom-theme .shepherd-button:not(.shepherd-button-secondary):hover { background-color: #F57C00; color: var(--secondary-color); }
-.shepherd-custom-theme .shepherd-button-secondary { background-color: transparent; color: var(--secondary-color); border: 2px solid var(--border-color); }
-.shepherd-custom-theme .shepherd-button-secondary:hover { background-color: var(--background-color); border-color: #bdbdbd; color: var(--secondary-color); }
-.shepherd-custom-theme .shepherd-cancel-link { transition: color 0.2s ease; }
-.shepherd-custom-theme .shepherd-cancel-icon:hover { color: var(--danger-color) !important; }
+.tour-step-indicator { 
+    /* ZMENA: Nové farby */
+    background-color: var(--primary-light); 
+    color: var(--primary-color); 
+    padding: 0.25rem 0.75rem; 
+    border-radius: var(--radius-full); /* Väčšie zaoblenie */
+    font-size: 0.8rem; 
+    font-weight: 700; 
+    flex-shrink: 0; 
+}
+.tour-header h3 { 
+    margin: 0; 
+    font-size: 1.25rem; 
+    color: var(--text-color); /* Nová farba */
+    font-weight: 600; 
+    font-family: var(--font-display); /* Nový font */
+}
+.shepherd-element.shepherd-custom-theme { 
+    /* ZMENA: Nový dizajn */
+    border-radius: var(--radius-xl); /* 1.5rem */
+    box-shadow: var(--shadow-xl); 
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+}
+.shepherd-custom-theme .shepherd-header { 
+    padding: 1rem 1.5rem 0.5rem 1.5rem; 
+    background-color: transparent; 
+}
+.shepherd-custom-theme .shepherd-text { 
+    padding: 0.5rem 1.5rem 1rem 1.5rem; 
+    font-size: 0.95rem; 
+    color: var(--text-secondary); /* Nová farba */
+}
+.shepherd-custom-theme .shepherd-footer { 
+    padding: 0 1.5rem 1.5rem; 
+}
 
-/* Posledná úprava - odstránenie paddingu, ktorý bol potrebný pre kroky */
+/* === APLIKÁCIA NOVÉHO .btn SYSTÉMU === */
+.shepherd-custom-theme .shepherd-button { 
+    /* Reset na základný .btn */
+    margin: 0 0.25rem;
+    
+    /* Vlastnosti z .btn */
+    padding: var(--space-3) var(--space-6);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    transition: all var(--duration-normal) var(--ease-spring);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+.shepherd-custom-theme .shepherd-button:hover { 
+    transform: translateY(-2px) scale(1.02); 
+    box-shadow: var(--shadow-lg); 
+}
+
+/* Primárne tlačidlo (.btn--primary) */
+.shepherd-custom-theme .shepherd-button:not(.shepherd-button-secondary) { 
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+.shepherd-custom-theme .shepherd-button:not(.shepherd-button-secondary):hover { 
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+    background: var(--primary-gradient); /* Zachová gradient */
+    color: white;
+}
+
+/* Sekundárne tlačidlo (.btn--secondary) */
+.shepherd-custom-theme .shepherd-button-secondary { 
+    background: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+.shepherd-custom-theme .shepherd-button-secondary:hover { 
+    background: var(--neutral-100);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.shepherd-custom-theme .shepherd-cancel-link { 
+    transition: color 0.2s ease; 
+}
+.shepherd-custom-theme .shepherd-cancel-icon {
+    /* Nový štýl zatváracieho tlačidla */
+    font-size: 1rem;
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+}
+.shepherd-custom-theme .shepherd-cancel-icon:hover { 
+    color: var(--danger-color) !important; 
+    background: var(--danger-light);
+}
+
+/* Posledná úprava (bezo zmeny) */
 #sidebar-step-2 .step-content {
     padding-bottom: 0;
 }
