@@ -1,6 +1,6 @@
 // js/DocumentProcessor.js
 
-// Odstránené 'createProgressTracker' z importu
+// Odstránené 'toggleSpinner' z importu
 import { showNotification, toggleSpinner, showErrorModal, setButtonState } from './ui.js';
 
 export class DocumentProcessor {
@@ -12,6 +12,11 @@ export class DocumentProcessor {
             processedData: null,
             appState: config.appState, // appState sa stále číta, ale už sa do neho nezapisuje
         };
+        
+        // === ZMENA: Pridané bindovanie pre nové metódy ===
+        this._showPreviewSkeleton = this._showPreviewSkeleton.bind(this);
+        this._restoreEmptyState = this._restoreEmptyState.bind(this);
+        // === KONIEC ZMENY ===
     }
 
     /**
@@ -75,6 +80,7 @@ export class DocumentProcessor {
         }
     }
 
+    // === ZMENA: Použitie Skeleton Loadingu namiesto Global Spinnera ===
     processData() {
         if (!this.config.dataProcessor) {
             showNotification('Pre túto sekciu nie je definované spracovanie dát.', 'error');
@@ -82,11 +88,15 @@ export class DocumentProcessor {
         }
         
         this.state.processedData = null;
-        toggleSpinner(true);
+        
+        // Krok 1: Zobrazíme Skeleton UI
+        this._showPreviewSkeleton();
+        
+        // Krok 2: Dáme UI čas na prekreslenie a potom spustíme spracovanie
         setTimeout(() => {
             try {
                 this.state.processedData = this.config.dataProcessor(this.state.data);
-                this.displayPreview();
+                this.displayPreview(); // Nahrádza skeleton reálnymi dátami
                 showNotification('Dáta boli úspešne automaticky spracované.', 'success');
                 if (this.config.onDataProcessed) {
                     this.config.onDataProcessed();
@@ -96,12 +106,15 @@ export class DocumentProcessor {
                     message: `Nastala chyba pri spracovaní dát: ${error.message}`,
                     details: error.stack
                 });
+                // Ak nastane chyba, vrátime sa k pôvodnému prázdnemu stavu
+                this._restoreEmptyState();
             } finally {
-                toggleSpinner(false);
+                // Krok 3: Aktualizujeme stav tlačidiel
                 this.checkAllButtonsState();
             }
-        }, 50);
+        }, 50); // 50ms stačí na prekreslenie UI
     }
+    // === KONIEC ZMENY ===
     
     displayPreview() {
         const previewContainer = document.getElementById(this.config.previewElementId);
@@ -171,6 +184,9 @@ export class DocumentProcessor {
             }
         });
     }
+    
+    // ... (Metódy generateRowByRow, generateInBatches, generateByGroup zostávajú bezo zmeny) ...
+    // ... (Tu preskočený kód pre stručnosť, ale je prítomný v súbore) ...
     
     async generateRowByRow(generatorKey) {
         const generator = this.config.generators[generatorKey];
@@ -537,5 +553,38 @@ export class DocumentProcessor {
                 end: '}}'
             }
         });
+    }
+    
+    // === NOVÁ POMOCNÁ METÓDA PRE SKELETON ===
+    _showPreviewSkeleton() {
+        const previewContainer = document.getElementById(this.config.previewElementId);
+        if (!previewContainer) return;
+
+        const skeletonHTML = `
+            <div class="data-preview-header">
+                <div class="skeleton skeleton-text" style="width: 180px; height: 1.2em; margin-bottom: 0;"></div>
+            </div>
+            <div class="data-preview-table-wrapper" style="padding: 1rem; border: 1px solid var(--border-color); background: var(--light-color);">
+                <div class="skeleton skeleton-text" style="width: 95%; margin-bottom: 1rem;"></div>
+                <div class="skeleton skeleton-text" style="width: 100%; margin-bottom: 1rem;"></div>
+                <div class="skeleton skeleton-text" style="width: 80%; margin-bottom: 1rem;"></div>
+                <div class="skeleton skeleton-text" style="width: 90%; margin-bottom: 1rem;"></div>
+                <div class="skeleton skeleton-text" style="width: 75%; margin-bottom: 0;"></div>
+            </div>
+        `;
+        previewContainer.innerHTML = skeletonHTML;
+    }
+    
+    // === NOVÁ POMOCNÁ METÓDA PRE OBNOVU STAVU ===
+    _restoreEmptyState() {
+        const previewContainer = document.getElementById(this.config.previewElementId);
+        if (!previewContainer) return;
+        previewContainer.innerHTML = `
+            <div class="empty-state-placeholder">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h4>Spracovanie zlyhalo</h4>
+                <p>Skontrolujte konzolu pre chyby a nahrajte súbor znova.</p>
+            </div>
+        `;
     }
 }

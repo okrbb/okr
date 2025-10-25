@@ -23,6 +23,9 @@ const AppState = {
     municipalitiesMailContent: {}, // Ukladá pripravené maily
     zoznamyPreObceGenerated: false,
     currentView: 'welcome', // 'welcome', 'agenda', 'help'
+    
+    // === OPRAVA: Presunuté z predošlej opravy ===
+    tempMailContext: {} 
 };
 
 // ===== NOVÁ FUNKCIA: Načítanie statických JSON dát =====
@@ -79,7 +82,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================
 
     // === DOM ELEMENTY ===
-    const ouSelect = document.getElementById('okresny-urad');
+    // === ZMENA: Odstránený ouSelect, nahradený komponentmi pre vlastný select ===
+    // const ouSelect = document.getElementById('okresny-urad');
     const agendaNav = document.getElementById('agenda-navigation');
     const agendaLinks = agendaNav.querySelectorAll('.nav-link');
     const dashboardContent = document.getElementById('dashboard-content');
@@ -138,10 +142,64 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        // === ZMENA: Úprava listenerov pre vlastný select ===
+        const ouSelectWrapper = document.getElementById('ou-select-wrapper');
+        const ouTrigger = document.getElementById('okresny-urad-trigger');
+        const ouOptions = document.getElementById('okresny-urad-options');
+        const ouLabel = document.getElementById('okresny-urad-label');
+
+        if (ouTrigger && ouOptions && ouSelectWrapper && ouLabel) {
+            // 1. Otvorenie/zatvorenie zoznamu
+            ouTrigger.addEventListener('click', (e) => {
+                e.stopPropagation(); // Zastaví propagáciu, aby sa hneď nezavrel
+                const isOpen = ouOptions.classList.toggle('active');
+                ouSelectWrapper.classList.toggle('is-open', isOpen);
+                ouTrigger.setAttribute('aria-expanded', isOpen);
+            });
+            
+            // 2. Výber možnosti
+            ouOptions.addEventListener('click', (e) => {
+                const targetOption = e.target.closest('.custom-select-option');
+                if (!targetOption) return;
+                
+                const selectedValue = targetOption.dataset.value;
+                const selectedText = targetOption.textContent;
+
+                // Aktualizácia UI
+                ouLabel.textContent = selectedText;
+                ouOptions.classList.remove('active');
+                ouSelectWrapper.classList.remove('is-open');
+                ouTrigger.setAttribute('aria-expanded', 'false');
+                
+                // Aktualizácia .selected triedy
+                ouOptions.querySelectorAll('.custom-select-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                targetOption.classList.add('selected');
+
+                // Volanie existujúcej logiky, len ak sa hodnota zmenila
+                if (AppState.selectedOU !== selectedValue) {
+                    setOkresnyUrad(selectedValue);
+                }
+            });
+        }
+        
+        // 3. Zatvorenie pri kliknutí mimo
+        document.addEventListener('click', (e) => {
+            if (ouOptions && !ouSelectWrapper.contains(e.target)) {
+                ouOptions.classList.remove('active');
+                ouSelectWrapper.classList.remove('is-open');
+                if(ouTrigger) ouTrigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+        // === KONIEC ZMENY ===
+
         // Hlavná navigácia a ovládacie prvky
+        /* === ODSTRÁNENÉ: Pôvodný listener pre ouSelect ===
         ouSelect.addEventListener('change', (e) => {
             setOkresnyUrad(e.target.value);
         });
+        */
         agendaLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -152,6 +210,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (link.classList.contains('active') && AppState.currentView !== 'help') {
                     return;
                 }
+                
+                // === PRIDANÝ SCROLL TOP (Požiadavka používateľa) ===
+                if (dashboardContent) {
+                    dashboardContent.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+                // === KONIEC PRIDANIA ===
+                
                 const agendaKey = link.dataset.agenda;
                 renderAgendaView(agendaKey);
             });
@@ -162,6 +227,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
         helpCenterBtn.addEventListener('click', () => {
+            // === PRIDANÝ SCROLL TOP (Požiadavka používateľa) ===
+            if (dashboardContent) {
+                dashboardContent.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            // === KONIEC PRIDANIA ===
+            
             AppState.selectedAgendaKey = null; 
             updateUIState();
             renderHelpCenterView();
@@ -248,14 +319,164 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         // === KONIEC ZMIEN V MODAL LISTENEROCH ===
 
+        // === Presunutý listener z predošlej opravy ===
+        modalContainer.addEventListener('click', async (e) => {
+            const target = e.target.closest('#copy-and-open-mail-btn');
+            if (!target) return;
+
+            // Získame kontext uložený v AppState
+            const { htmlBody, recipient, subject, rowCount } = AppState.tempMailContext;
+            
+            if (!htmlBody) {
+                showErrorModal({ message: 'Chyba: Nenašiel sa kontext e-mailu.' });
+                return;
+            }
+
+            try {
+                const blob = new Blob([htmlBody], { type: 'text/html' });
+                const clipboardItem = new ClipboardItem({ 'text/html': blob });
+                await navigator.clipboard.write([clipboardItem]);
+                
+                showNotification(`Telo e-mailu (${rowCount} riadkov) bolo skopírované!`, 'success');
+                
+                const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}`;
+                window.location.href = mailtoLink;
+
+            } catch (err) {
+                showErrorModal({
+                    message: 'Nepodarilo sa automaticky skopírovať obsah.',
+                    details: 'Prosím, označte text v náhľade manuálne (Ctrl+A, Ctrl+C) a pokračujte. Chyba: ' + err.message
+                });
+            }
+        });
+
+        // === Presunutý listener z predošlej opravy ===
+        modalContainer.addEventListener('click', (e) => {
+            const target = e.target.closest('#show-partial-preview-btn');
+            if (!target) return;
+
+            const { htmlBody } = AppState.tempMailContext;
+            const partialPreviewContainer = modalContainer.querySelector('#email-partial-preview');
+
+            if (!htmlBody || !partialPreviewContainer) return;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlBody;
+            
+            const table = tempDiv.querySelector('table');
+            if (table) {
+                const rows = Array.from(table.querySelectorAll('tbody > tr'));
+                // PREVIEW_THRESHOLD a PARTIAL_PREVIEW_COUNT sú definované vyššie
+                const previewRows = rows.slice(0, 10); // 10 je PARTIAL_PREVIEW_COUNT
+                
+                const newTbody = document.createElement('tbody');
+                previewRows.forEach(row => newTbody.appendChild(row.cloneNode(true)));
+                
+                table.querySelector('tbody').replaceWith(newTbody);
+                
+                partialPreviewContainer.innerHTML = tempDiv.innerHTML;
+                partialPreviewContainer.style.display = 'block';
+                target.style.display = 'none'; // Skryjeme tlačidlo
+            }
+        });
+
         // Listenery pre statické prvky #agenda-view
         setupTabListeners(agendaView); // Pripája taby pre hlavnú agendu
-        setupSpisEditListener(); // Pripája listener na statické .spis-display--editable
-        setupGeneratorButtonListeners(); // Pripája DELEGOVANÉ listenery na #generators-container
         
-        // === ZMENA: Volanie setupFileInputListeners je teraz tu ===
+        // === ZAČIATOK KĽÚČOVEJ OPRAVY ===
+        // Zjednotený click handler pre #agenda-view
+        if (agendaView) {
+            agendaView.addEventListener('click', (e) => {
+                // 1. Logika pre "Remove File" (presunuté zo setupFileInputListeners)
+                const removeButton = e.target.closest('.btn-remove-file');
+                if (removeButton) {
+                    e.stopPropagation(); // Zabráni ďalšiemu spracovaniu
+                    
+                    const inputId = removeButton.dataset.inputId;
+                    const input = document.getElementById(inputId);
+                    if (!input) return;
+
+                    const dropZone = document.getElementById(input.dataset.dropzoneId);
+                    
+                    delete AppState.files[inputId];
+                    input.value = '';
+                    dropZone.classList.remove('loaded');
+                    
+                    if (AppState.processor) {
+                        const inputConf = agendaConfigs[AppState.selectedAgendaKey]?.dataInputs.find(i => i.id === inputId);
+                        const stateKey = inputConf ? inputConf.stateKey : null;
+                        if (stateKey) delete AppState.processor.state.data[stateKey];
+                        
+                        AppState.processor.state.processedData = null;
+                        
+                        const previewContainer = agendaView.querySelector('#preview-container');
+                        if (previewContainer) {
+                            previewContainer.innerHTML = `
+                                <div class="empty-state-placeholder">
+                                    <i class="fas fa-eye-slash"></i>
+                                    <h4>Náhľad dát bol vymazaný</h4>
+                                    <p>Prosím, nahrajte vstupné súbory na zobrazenie náhľadu.</p>
+                                </div>
+                            `;
+                        }
+                        
+                        AppState.processor.checkAllButtonsState();
+                    }
+                    updateUIState();
+                    return; // Končíme spracovanie kliku
+                }
+
+                // 2. Logika pre Generátory (presunuté zo setupGeneratorButtonListeners)
+                const genButton = e.target.closest('button[data-generator-key]');
+                if (genButton) {
+                    e.stopPropagation();
+                    if (!AppState.processor) return;
+                    
+                    const genKey = genButton.dataset.generatorKey;
+                    const genConf = agendaConfigs[AppState.selectedAgendaKey]?.generators[genKey];
+                    
+                    if (genConf) {
+                        switch (genConf.type) {
+                            case 'row': AppState.processor.generateRowByRow(genKey); break;
+                            case 'batch': AppState.processor.generateInBatches(genKey); break;
+                            case 'groupBy': AppState.processor.generateByGroup(genKey); break;
+                            default: showErrorModal({ message: `Neznámy typ generátora: ${genConf.type}` });
+                        }
+                    }
+                    return;
+                }
+
+                // 3. Logika pre Mail Tlačidlo (presunuté zo setupGeneratorButtonListeners)
+                const mailButton = e.target.closest('#send-mail-btn-vp');
+                if (mailButton) {
+                    e.stopPropagation();
+                    showMailListModal();
+                    return;
+                }
+
+                // 4. Logika pre Edit Spis (presunuté zo setupSpisEditListener)
+                const spisDisplay = e.target.closest('.spis-display--editable');
+                if (spisDisplay) {
+                    e.stopPropagation();
+                    const agendaKey = AppState.selectedAgendaKey;
+                    if (!agendaKey) return;
+                    
+                    const agendaConfig = agendaConfigs[agendaKey];
+                    const currentValue = AppState.spis; 
+                    
+                    showSpisModal(agendaKey, agendaConfig, currentValue);
+                    return;
+                }
+            });
+        }
+        
+        // Funkcie setupSpisEditListener() a setupGeneratorButtonListeners() už nie sú potrebné
+        // setupSpisEditListener();
+        // setupGeneratorButtonListeners();
+        
+        // setupFileInputListeners teraz pripája iba 'change' a drag/drop listenery
         setupFileInputListeners();
-        // === KONIEC ZMENY ===
+        // === KONIEC KĽÚČOVEJ OPRAVY ===
     }
 
     // ======================================================
@@ -391,7 +612,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         AppState.selectedOU = null;
         AppState.okresData = null;
-        ouSelect.value = '';
+        
+        // === ZMENA: Reset vlastného selectu ===
+        const ouLabel = document.getElementById('okresny-urad-label');
+        const ouOptions = document.getElementById('okresny-urad-options');
+        if (ouLabel) {
+            ouLabel.textContent = '';
+        }
+        if (ouOptions) {
+            ouOptions.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
+            const placeholder = ouOptions.querySelector('.custom-select-option[data-value=""]');
+            if (placeholder) placeholder.classList.add('selected');
+        }
+        // === KONIEC ZMENY ===
         
         AppState.notifications = [];
         renderNotifications();
@@ -401,6 +634,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function setOkresnyUrad(ouKey) {
+        // === PRIDANÉ: Definície pre vlastný select ===
+        const ouLabel = document.getElementById('okresny-urad-label');
+        const ouOptions = document.getElementById('okresny-urad-options');
+        // === KONIEC PRIDANIA ===
+        
         if (!ouKey) {
             resetApp();
             return;
@@ -409,13 +647,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hasData = Object.keys(AppState.files).length > 0 || AppState.spis !== null;
         if (AppState.selectedOU && AppState.selectedOU !== ouKey && hasData) {
             if (!confirm("Zmenou okresného úradu prídete o všetky rozpracované dáta (nahraté súbory a spis). Naozaj chcete pokračovať?")) {
-                ouSelect.value = AppState.selectedOU; // Vráti výber na pôvodný OÚ
+                
+                // === ZMENA: Vráti výber na pôvodný OÚ ===
+                const previousOption = ouOptions.querySelector(`.custom-select-option[data-value="${AppState.selectedOU}"]`);
+                if (previousOption) {
+                    ouLabel.textContent = previousOption.textContent;
+                    ouOptions.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
+                    previousOption.classList.add('selected');
+                }
+                // === KONIEC ZMENY ===
+                
                 return;
             }
             resetAgendaState();
         }
 
-        ouSelect.value = ouKey;
+        // === ZMENA: Aktualizácia UI (label a .selected triedy) ===
+        const selectedOption = ouOptions.querySelector(`.custom-select-option[data-value="${ouKey}"]`);
+        if (selectedOption) {
+            ouLabel.textContent = selectedOption.textContent;
+            ouOptions.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected'));
+            selectedOption.classList.add('selected');
+        }
+        // === KONIEC ZMENY ===
+
         AppState.selectedOU = ouKey;
         AppState.okresData = OKRESNE_URADY[ouKey];
         localStorage.setItem('krokr-lastOU', ouKey);
@@ -598,7 +853,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // 6. Pripojenie listenerov pre DYNAMICKÝ obsah
         // === ZMENA: Odstránené volanie setupFileInputListeners() ===
-        // setupFileInputListeners();
+        // (Všetko je už pripojené na #agendaView)
         // === KONIEC ZMENY ===
         
         // 7. Inicializácia procesora
@@ -720,6 +975,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     /**
      * Zobrazí náhľad konkrétneho e-mailu pre obec.
      * Volá sa kliknutím na .prepare-mail-to-obec-btn v modálnom okne.
+     * === ZMENENÁ FUNKCIA (OPRAVA) ===
      */
     const showEmailPreviewModal = (obecName) => {
         const mailContent = AppState.municipalitiesMailContent;
@@ -734,6 +990,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { html: htmlBody, count: rowCount } = emailData;
         const recipient = ouEmails[obecName];
         const subject = `Zoznam subjektov pre obec ${obecName}`;
+        
+        // === ZMENA: Uložíme kontext do AppState pre delegované listenery ===
+        AppState.tempMailContext = { htmlBody, recipient, subject, rowCount };
+        // === KONIEC ZMENY ===
 
         const modalTitle = `
             <div class="help-center-header">
@@ -778,48 +1038,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         showModal({ title: modalTitle, content: modalContent, autoFocusSelector: '#copy-and-open-mail-btn' });
         // === KONIEC ZMENY ===
 
-        document.getElementById('copy-and-open-mail-btn').addEventListener('click', async () => {
-            try {
-                const blob = new Blob([htmlBody], { type: 'text/html' });
-                const clipboardItem = new ClipboardItem({ 'text/html': blob });
-                await navigator.clipboard.write([clipboardItem]);
-                
-                showNotification(`Telo e-mailu (${rowCount} riadkov) bolo skopírované!`, 'success');
-                
-                const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}`;
-                window.location.href = mailtoLink;
-
-            } catch (err) {
-                showErrorModal({
-                    message: 'Nepodarilo sa automaticky skopírovať obsah.',
-                    details: 'Prosím, označte text v náhľade manuálne (Ctrl+A, Ctrl+C) a pokračujte. Chyba: ' + err.message
-                });
-            }
-        });
-
-        const showPartialBtn = document.getElementById('show-partial-preview-btn');
-        if (showPartialBtn) {
-            showPartialBtn.addEventListener('click', () => {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = htmlBody;
-                
-                const table = tempDiv.querySelector('table');
-                if (table) {
-                    const rows = Array.from(table.querySelectorAll('tbody > tr'));
-                    const previewRows = rows.slice(0, PARTIAL_PREVIEW_COUNT);
-                    
-                    const newTbody = document.createElement('tbody');
-                    previewRows.forEach(row => newTbody.appendChild(row.cloneNode(true)));
-                    
-                    table.querySelector('tbody').replaceWith(newTbody);
-                    
-                    const partialPreviewContainer = document.getElementById('email-partial-preview');
-                    partialPreviewContainer.innerHTML = tempDiv.innerHTML;
-                    partialPreviewContainer.style.display = 'block';
-                    showPartialBtn.style.display = 'none';
-                }
-            });
-        }
+        // === ODSTRÁNENÉ VŠETKY document.getElementById(...).addEventListener(...) ===
+        // Logika bola presunutá do setupStaticListeners
     };
 
     // ... (Listener pre #modal-container je v setupStaticListeners) ...
@@ -922,72 +1142,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Funkcia `showHelpCenterModal` sa už nepoužíva
 
     /**
-     * ZMENA: Používa event delegation pre generátory.
-     * Volá sa iba raz pri DOMContentLoaded.
+     * === ZMENA: Táto funkcia bola odstránená ===
+     * Jej logika bola presunutá do zjednoteného 'click' listenera
+     * v setupStaticListeners.
      */
-    function setupGeneratorButtonListeners() {
-        const generatorsContainer = document.getElementById('generators-container');
-        if (!generatorsContainer) return; // Ochrana
-
-        // Listener pre tlačidlá generátorov
-        generatorsContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('button[data-generator-key]');
-            if (!button) return; // Klik nebol na tlačidle generátora
-
-            if (!AppState.processor) return;
-            
-            const genKey = button.dataset.generatorKey;
-            const genConf = agendaConfigs[AppState.selectedAgendaKey]?.generators[genKey];
-            
-            if (genConf) {
-                switch (genConf.type) {
-                    case 'row': AppState.processor.generateRowByRow(genKey); break;
-                    case 'batch': AppState.processor.generateInBatches(genKey); break;
-                    case 'groupBy': AppState.processor.generateByGroup(genKey); break;
-                    default: showErrorModal({ message: `Neznámy typ generátora: ${genConf.type}` });
-                }
-            }
-        });
-
-        // Listener pre špeciálne tlačidlo Mail (tiež delegovaný)
-        generatorsContainer.addEventListener('click', (e) => {
-            const mailButton = e.target.closest('#send-mail-btn-vp');
-            if (mailButton) {
-                showMailListModal();
-            }
-        });
-    }
+    // function setupGeneratorButtonListeners() { ... }
 
 
     /**
-     * NOVÁ FUNKCIA: Pridá listener na .spis-display pre možnosť úpravy.
-     * ZMENA: Volá sa iba raz pri DOMContentLoaded.
+     * === ZMENA: Táto funkcia bola odstránená ===
+     * Jej logika bola presunutá do zjednoteného 'click' listenera
+     * v setupStaticListeners.
      */
-    function setupSpisEditListener() {
-        // Hľadáme v celom dokumente, ale nájde iba ten jeden v #agenda-view
-        const spisDisplay = document.querySelector('.spis-display--editable');
-        if (spisDisplay) {
-            spisDisplay.addEventListener('click', () => {
-                const agendaKey = AppState.selectedAgendaKey;
-                if (!agendaKey) return;
-                
-                const agendaConfig = agendaConfigs[agendaKey];
-                const currentValue = AppState.spis; // ZMENA: Berie globálny spis
-                
-                // Voláme refaktorovanú funkciu
-                showSpisModal(agendaKey, agendaConfig, currentValue);
-            });
-        }
-    }
+    // function setupSpisEditListener() { ... }
 
 
     /**
-     * ZMENA: Táto funkcia sa volá iba raz (v setupStaticListeners) 
-     * a používa delegovanie udalostí.
+     * === ZMENA: Táto funkcia teraz pripája listenery na #agendaView ===
+     * Pripája iba 'change' a drag/drop listenery.
+     * 'click' listener pre .btn-remove-file bol presunutý.
      */
     function setupFileInputListeners() {
-        const fileInputsContainer = agendaView.querySelector('#file-inputs-container');
-        if (!fileInputsContainer) return;
+        // === ZMENA: Listener je pripojený na #agendaView ===
+        if (!agendaView) return;
 
         // Pomocná funkcia na získanie kontextu
         const getFileConfig = (target) => {
@@ -1025,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         // 1. Listener pre <input type="file"> (delegovaný)
-        fileInputsContainer.addEventListener('change', (e) => {
+        agendaView.addEventListener('change', (e) => {
             const input = e.target.closest('.file-input');
             if (!input) return;
             
@@ -1036,18 +1213,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // 2. Listenery pre Drag & Drop (delegované)
-        fileInputsContainer.addEventListener('dragover', (e) => {
+        agendaView.addEventListener('dragover', (e) => {
             e.preventDefault();
             const dropZone = e.target.closest('.file-drop-zone');
             if (dropZone) dropZone.classList.add('active');
         });
 
-        fileInputsContainer.addEventListener('dragleave', (e) => {
+        agendaView.addEventListener('dragleave', (e) => {
             const dropZone = e.target.closest('.file-drop-zone');
             if (dropZone) dropZone.classList.remove('active');
         });
 
-        fileInputsContainer.addEventListener('drop', (e) => {
+        agendaView.addEventListener('drop', (e) => {
             e.preventDefault();
             const dropZone = e.target.closest('.file-drop-zone');
             if (!dropZone) return;
@@ -1060,42 +1237,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // 3. Listener pre tlačidlo "Remove file" (delegovaný)
-        fileInputsContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('.btn-remove-file');
-            if (!button) return;
-
-            const inputId = button.dataset.inputId;
-            const input = document.getElementById(inputId);
-            if (!input) return;
-
-            const dropZone = document.getElementById(input.dataset.dropzoneId);
-            
-            delete AppState.files[inputId];
-            input.value = '';
-            dropZone.classList.remove('loaded');
-            
-            if (AppState.processor) {
-                const inputConf = agendaConfigs[AppState.selectedAgendaKey]?.dataInputs.find(i => i.id === inputId);
-                const stateKey = inputConf ? inputConf.stateKey : null;
-                if (stateKey) delete AppState.processor.state.data[stateKey];
-                
-                AppState.processor.state.processedData = null;
-                
-                const previewContainer = agendaView.querySelector('#preview-container');
-                if (previewContainer) {
-                    previewContainer.innerHTML = `
-                        <div class="empty-state-placeholder">
-                            <i class="fas fa-eye-slash"></i>
-                            <h4>Náhľad dát bol vymazaný</h4>
-                            <p>Prosím, nahrajte vstupné súbory na zobrazenie náhľadu.</p>
-                        </div>
-                    `;
-                }
-                
-                AppState.processor.checkAllButtonsState();
-            }
-            updateUIState();
-        });
+        // === TÁTO ČASŤ BOLA PRESUNUTÁ DO setupStaticListeners ===
+        // agendaView.addEventListener('click', (e) => { ... });
     }
 
     function initializeFromLocalStorage() {
@@ -1117,11 +1260,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ===== ZMENA: Funkcia teraz prijíma dáta ako parameter =====
 function populateOkresnyUradSelect(ouData) {
-    const select = document.getElementById('okresny-urad');
+    // === ZMENA: Celá funkcia je prepísaná pre vlastný select ===
+    const optionsContainer = document.getElementById('okresny-urad-options');
+    if (!optionsContainer) return;
+    optionsContainer.innerHTML = ''; // Vyčistiť
+
+    // 1. Pridanie "placeholder" voľby
+    const placeholderOption = document.createElement('div');
+    placeholderOption.className = 'custom-select-option selected'; // Predvolená je vybraná
+    placeholderOption.textContent = '';
+    placeholderOption.dataset.value = '';
+    optionsContainer.appendChild(placeholderOption);
+
+    // 2. Pridanie ostatných volieb
     Object.keys(ouData).forEach(key => {
-        const option = document.createElement('option');
-        option.value = key;
+        const option = document.createElement('div');
+        option.className = 'custom-select-option';
         option.textContent = ouData[key].Okresny_urad;
-        select.appendChild(option);
+        option.dataset.value = key; // Použijeme data-atribút
+        optionsContainer.appendChild(option);
     });
+    // === KONIEC ZMENY ===
 }
