@@ -92,19 +92,37 @@
     color: var(--text-color);
 }
 
-.shepherd-custom-theme .shepherd-cancel-link { 
-    transition: color 0.2s ease; 
-}
 .shepherd-custom-theme .shepherd-cancel-icon {
-    /* Nový štýl zatváracieho tlačidla */
-    font-size: 1rem;
-    padding: 0.5rem;
-    border-radius: var(--radius-md);
-    color: var(--text-secondary);
+    /* --- Vynútenie rozmerov a tvaru --- */
+    width: 32px !important;       /* Presná šírka */
+    height: 32px !important;      /* Presná výška */
+    padding: 0 !important;        /* Bez vnútorného odsadenia */
+    border-radius: var(--radius-md) !important; /* Zaoblené rohy štvorca */
+    box-sizing: border-box !important; /* Padding a border sú v rozmeroch */
+
+    /* --- Vzhľad --- */
+    border: none !important;
+    background: var(--neutral-100) !important;
+    color: var(--text-secondary) !important;
+
+    /* --- Zarovnanie obsahu (ikony) --- */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1rem !important; /* Môžete upraviť, ak je ikona príliš malá/veľká */
+    line-height: 1 !important;
+
+    /* --- Správanie --- */
+    cursor: pointer !important;
+    transition: all var(--duration-fast) ease-in-out !important; /* Plynulá animácia */
+    transform: rotate(0deg); /* Explicitne nastavený počiatočný stav pre animáciu */
 }
+
+/* Hover štýly z .modal-close-btn s animáciou */
 .shepherd-custom-theme .shepherd-cancel-icon:hover { 
-    color: var(--danger-color) !important; 
-    background: var(--danger-light);
+    background: var(--danger-color) !important; 
+    color: white !important; 
+    transform: rotate(90deg) !important; /* Animácia otočenia */
 }
 
 /* Posledná úprava (bezo zmeny) */
