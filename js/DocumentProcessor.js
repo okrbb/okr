@@ -10,7 +10,8 @@ export class DocumentProcessor {
             data: {},
             templates: {}, // Tento objekt sa teraz bude plniť postupne
             processedData: null,
-            appState: config.appState, // appState sa stále číta, ale už sa do neho nezapisuje
+            // Ponechávame referenciu pre checkAllButtonsState
+            appState: config.appState, 
         };
         
         // === ZMENA: Pridané bindovanie pre nové metódy ===
@@ -175,7 +176,8 @@ export class DocumentProcessor {
             if(btn) {
                 // ZMENA: Kontrola načítania šablóny je odstránená, pretože to už nie je podmienka pre aktiváciu tlačidla.
                 const dataProcessed = !!this.state.processedData;
-                const spisFilled = !!this.state.appState.spis; // ZMENA: Kontroluje globálny spis
+                // Stále čítame z appState, ale iba pre UI
+                const spisFilled = !!this.state.appState.spis; 
                 const ouSelected = !!this.state.appState.selectedOU;
 
                 const isReady = dataProcessed && spisFilled && ouSelected;
@@ -188,7 +190,9 @@ export class DocumentProcessor {
     // ... (Metódy generateRowByRow, generateInBatches, generateByGroup zostávajú bezo zmeny) ...
     // ... (Tu preskočený kód pre stručnosť, ale je prítomný v súbore) ...
     
-    async generateRowByRow(generatorKey) {
+    // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+    async generateRowByRow(generatorKey, context) {
+    // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
         const generator = this.config.generators[generatorKey];
         const button = document.getElementById(generator.buttonId);
         
@@ -234,7 +238,11 @@ export class DocumentProcessor {
                 const row = dataRows[i];
                 if (this.isRowEmpty(row)) continue;
 
-                const templateData = generator.dataMapper({ row, columnMap, appState: this.state.appState, index: i });
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                // Namiesto appState posielame čistý kontext
+                const templateData = generator.dataMapper({ row, columnMap, ...context, index: i });
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
+
                 const templateContent = this.state.templates[generator.templateKey];
                 if (!templateContent) throw new Error(`Chýba šablóna pre: ${generator.title}`);
                 
@@ -288,7 +296,9 @@ export class DocumentProcessor {
         }
     }
     
-    async generateInBatches(generatorKey) {
+    // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+    async generateInBatches(generatorKey, context) {
+    // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
         const generator = this.config.generators[generatorKey];
         const button = document.getElementById(generator.buttonId);
 
@@ -327,7 +337,10 @@ export class DocumentProcessor {
                 const batchEnd = batchStart + batchSize;
                 const batch = dataRows.slice(batchStart, batchEnd);
 
-                const templateData = generator.dataMapper({ batch, columnMap, appState: this.state.appState, batchIndex: i });
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                const templateData = generator.dataMapper({ batch, columnMap, ...context, batchIndex: i });
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                
                 const templateContent = this.state.templates[generator.templateKey];
                 if (!templateContent) throw new Error(`Chýba šablóna pre: ${generator.title}`);
                 
@@ -371,7 +384,9 @@ export class DocumentProcessor {
         }
     }
 
-    async generateByGroup(generatorKey) {
+    // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+    async generateByGroup(generatorKey, context) {
+    // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
         const generator = this.config.generators[generatorKey];
         const button = document.getElementById(generator.buttonId);
         const originalButtonText = button.querySelector('.btn-text')?.textContent || (generator.outputType === 'xlsx' ? 'Exportovať (.xlsx)' : 'Generovať (.docx)');
@@ -425,7 +440,10 @@ export class DocumentProcessor {
             for (const groupKey in groupedData) {
                 const groupRows = groupedData[groupKey];
                 
-                const templateData = generator.dataMapper({ groupRows, columnMap, groupKey, appState: this.state.appState });
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                const templateData = generator.dataMapper({ groupRows, columnMap, groupKey, ...context });
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                
                 const fileName = generator.fileNameGenerator(templateData, 0);
 
                 if (generator.outputType === 'xlsx') {

@@ -34,13 +34,15 @@ export const agendaConfigs = {
                 templatePath: TEMPLATE_PATHS.vp.rozhodnutie, // <-- ZMENA
                 title: 'Rozhodnutia',
                 zipName: 'rozhodnutia_VP.zip',
-                dataMapper: ({ row, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ row, columnMap, okresData, spis, selectedOU }) => {
                     const ico = row[columnMap['IČO']] || '';
                     return {
-                        ...appState.okresData,
-                        Nazov_OU_upper: appState.okresData.Okresny_urad.toUpperCase(),
-                        'spis-VP': appState.spis, // ZMENA: Globálny spis
-                        ID_OU: appState.selectedOU.toLowerCase(),
+                        ...okresData,
+                        Nazov_OU_upper: okresData.Okresny_urad.toUpperCase(),
+                        'spis-VP': spis,
+                        ID_OU: selectedOU.toLowerCase(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         poradoveCislo: row[columnMap['P.Č.']],
                         nazovDodavatela: row[columnMap['DODÁVATEĽ']],
                         adresa: row[columnMap['ADRESA']],
@@ -64,11 +66,13 @@ export const agendaConfigs = {
                 templatePath: TEMPLATE_PATHS.vp.obalky, // <-- ZMENA
                 title: 'Obálky',
                 zipName: 'obalky_VP.zip',
-                 dataMapper: ({ row, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                 dataMapper: ({ row, columnMap, okresData, spis }) => {
                      const pscMatch = (row[columnMap['PSC_long']] || '').match(/^(\d{3}\s?\d{2})\s+(.*)/);
                      return {
-                        ...appState.okresData,
-                        'spis-VP': appState.spis, // ZMENA: Globálny spis
+                        ...okresData,
+                        'spis-VP': spis,
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         nazovDodavatela: row[columnMap['DODÁVATEĽ']],
                         adresa: `${row[columnMap['ULICA']] || ''} ${row[columnMap['Č. POPISNÉ']] || ''}`.trim(),
                         PSC: row[columnMap['PSC_long']],
@@ -89,10 +93,12 @@ export const agendaConfigs = {
                 batchSize: 8,
                 title: 'Podacie hárky',
                 zipName: 'podacieHarky_VP.zip',
-                dataMapper: ({ batch, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ batch, columnMap, okresData, spis, selectedOU }) => {
                     let totalCena = 0;
                     const batchRows = batch.map(row => {
                         totalCena += POSTOVNE;
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         return {
                             A: row[columnMap['P.Č.']],
                             B: row[columnMap['DODÁVATEĽ']],
@@ -104,10 +110,12 @@ export const agendaConfigs = {
                             eur: POSTOVNE.toFixed(2)
                         }
                     });
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        'spis-VP': appState.spis, // ZMENA: Globálny spis
-                        ID_OU: appState.selectedOU.toLowerCase(),
+                        ...okresData,
+                        'spis-VP': spis,
+                        ID_OU: selectedOU.toLowerCase(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         ID_PH: "VP",
                         cena: totalCena.toFixed(2),
                         rows: batchRows,
@@ -123,17 +131,20 @@ export const agendaConfigs = {
                 groupByColumn: 'MESTO (OBEC)',
                 title: 'Zoznamy na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_VP.zip',
-                dataMapper: ({ groupRows, columnMap, groupKey, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ groupRows, columnMap, groupKey, okresData, spis }) => {
                     const rows = groupRows.map((row, index) => ({
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         A: index + 1,
                         B: row[columnMap['DODÁVATEĽ']],
                         C: `${row[columnMap['ADRESA']]}, ${row[columnMap['PSC_long']]}`
                     }));
-                    
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        spis_OU: appState.spis, // ZMENA: Globálny spis
-                        Okres: appState.okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
+                        ...okresData,
+                        spis_OU: spis,
+                        Okres: okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         obec: groupKey,
                         rows: rows,
                         uniqueRows: Array.from(new Set(rows.map(r => JSON.stringify(r)))).map(s => JSON.parse(s))
@@ -148,7 +159,10 @@ export const agendaConfigs = {
                 groupByColumn: 'MESTO (OBEC)',
                 title: 'Export zoznamov pre obce',
                 zipName: 'zoznamyVP_obce.zip',
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                // Tento mapper nepotreboval appState, takže žiadna zmena
                 dataMapper: ({ groupRows, columnMap, groupKey }) => {
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     const data = groupRows.map((row, index) => ({
                         'P.č.': index + 1,
                         'Dodávateľ': row[columnMap['DODÁVATEĽ']],
@@ -193,19 +207,22 @@ export const agendaConfigs = {
                 templatePath: TEMPLATE_PATHS.pp.rozhodnutie, // <-- ZMENA
                 title: 'Rozhodnutia',
                 zipName: 'rozhodnutia_PP.zip',
-                dataMapper: ({ row, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ row, columnMap, okresData, spis, selectedOU }) => {
                     const titul = row[columnMap['Titul']] || '';
+                    // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     const meno = row[columnMap['Meno']] || '';
                     const priezvisko = row[columnMap['Priezvisko']] || '';
                     const adresaPlna = row[columnMap['Miesto pobytu / Adresa trvalého pobytu']] || '';
                     const miestoNastupu = row[columnMap['Miesto nástupu k vojenskému útvaru']] || '';
                     const utvarMatch = miestoNastupu.match(/\d+/);
-                    
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        Nazov_OU_upper: appState.okresData.Okresny_urad.toUpperCase(),
-                        'spis-PP': appState.spis, // ZMENA: Globálny spis
-                        ID_OU: appState.selectedOU.toLowerCase(),
+                        ...okresData,
+                        Nazov_OU_upper: okresData.Okresny_urad.toUpperCase(),
+                        'spis-PP': spis,
+                        ID_OU: selectedOU.toLowerCase(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         menoPriezvisko: `${titul} ${meno} ${priezvisko}`.trim(),
                         adresa: adresaPlna,
                         PSC: '',
@@ -223,8 +240,10 @@ export const agendaConfigs = {
                 templatePath: TEMPLATE_PATHS.pp.obalky, // <-- ZMENA
                 title: 'Obálky',
                 zipName: 'obalky_PP.zip',
-                dataMapper: ({ row, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ row, columnMap, okresData, spis }) => {
                     const titul = row[columnMap['Titul']] || '';
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     const meno = row[columnMap['Meno']] || '';
                     const priezvisko = row[columnMap['Priezvisko']] || '';
                     const adresaPlna = row[columnMap['Miesto pobytu / Adresa trvalého pobytu']] || '';
@@ -233,10 +252,11 @@ export const agendaConfigs = {
                         [adresaPlna, ''];
                     const miestoNastupu = row[columnMap['Miesto nástupu k vojenskému útvaru']] || '';
                     const utvarMatch = miestoNastupu.match(/\d+/);
-
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        'spis-PP': appState.spis, // ZMENA: Globálny spis
+                        ...okresData,
+                        'spis-PP': spis,
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         menoPriezvisko: `${titul} ${meno} ${priezvisko}`.trim(),
                         adresa: adresa,
                         PSC: psc,
@@ -253,10 +273,12 @@ export const agendaConfigs = {
                 batchSize: 8,
                 title: 'Podacie hárky',
                 zipName: 'podacieHarky_PP.zip',
-                dataMapper: ({ batch, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ batch, columnMap, okresData, spis, selectedOU }) => {
                     let totalCena = 0;
                     const batchRows = batch.map(row => {
                         totalCena += POSTOVNE;
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         const adresaPlna = row[columnMap['Miesto pobytu / Adresa trvalého pobytu']] || '';
                         const [adresa, psc] = adresaPlna.lastIndexOf(',') !== -1 ? 
                             [adresaPlna.substring(0, adresaPlna.lastIndexOf(',')).trim(), adresaPlna.substring(adresaPlna.lastIndexOf(',') + 1).trim()] : 
@@ -275,10 +297,12 @@ export const agendaConfigs = {
                             eur: POSTOVNE.toFixed(2)
                         }
                     });
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        'spis-PP': appState.spis, // ZMENA: Globálny spis
-                        ID_OU: appState.selectedOU.toLowerCase(),
+                        ...okresData,
+                        'spis-PP': spis,
+                        ID_OU: selectedOU.toLowerCase(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         ID_PH: "PP",
                         cena: totalCena.toFixed(2),
                         rows: batchRows,
@@ -294,8 +318,10 @@ export const agendaConfigs = {
                 groupByColumn: 'Obec',
                 title: 'Zoznamy na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_PP.zip',
-                dataMapper: ({ groupRows, columnMap, groupKey, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ groupRows, columnMap, groupKey, okresData, spis }) => {
                     const rows = groupRows.map((row, index) => {
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                          const titul = row[columnMap['Titul']] || '';
                          const meno = row[columnMap['Meno']] || '';
                          const priezvisko = row[columnMap['Priezvisko']] || '';
@@ -305,10 +331,12 @@ export const agendaConfigs = {
                             C: row[columnMap['Miesto pobytu / Adresa trvalého pobytu']]
                         }
                     });
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        spis_OU: appState.spis, // ZMENA: Globálny spis
-                        Okres: appState.okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
+                        ...okresData,
+                        spis_OU: spis,
+                        Okres: okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         obec: groupKey,
                         rows: rows,
                         uniqueRows: Array.from(new Set(rows.map(r => JSON.stringify({B: r.B, C: r.C})))).map(s => JSON.parse(s))
@@ -338,13 +366,15 @@ export const agendaConfigs = {
                 templatePath: TEMPLATE_PATHS.ub.rozhodnutie, // <-- ZMENA
                 title: 'Rozhodnutia',
                 zipName: 'rozhodnutia_UB.zip',
-                dataMapper: ({ row, columnMap, appState, index }) => { // <-- Pridaný 'index'
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ row, columnMap, okresData, spis, selectedOU, index }) => { // <-- Pridaný 'index'
                     const ico = row[columnMap['IČO alebo rodné číslo']] || '';
                     return {
-                        ...appState.okresData,
-                        Nazov_OU_upper: appState.okresData.Okresny_urad.toUpperCase(),
-                        'spis-UB': appState.spis, // ZMENA: Globálny spis
-                        ID_OU: appState.selectedOU.toLowerCase(),
+                        ...okresData,
+                        Nazov_OU_upper: okresData.Okresny_urad.toUpperCase(),
+                        'spis-UB': spis,
+                        ID_OU: selectedOU.toLowerCase(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         Vlastnik: row[columnMap['obchodné meno alebo názov alebo meno a priezvisko']],
                         vAdresa: row[columnMap['sídlo alebo miesto pobytu']],
                         ICO: ico,
@@ -365,14 +395,18 @@ export const agendaConfigs = {
                 templatePath: TEMPLATE_PATHS.ub.obalky, // <-- ZMENA
                 title: 'Obálky',
                 zipName: 'obalky_UB.zip',
-                dataMapper: ({ row, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ row, columnMap, okresData, spis }) => {
                     const adresaPlna = row[columnMap['sídlo alebo miesto pobytu']] || '';
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     const [adresa, psc] = adresaPlna.includes(',') ? adresaPlna.split(',').map(s => s.trim()) : [adresaPlna, ''];
                     const ziadatel = row[columnMap['názov žiadateľa']] || '';
                     const utvarMatch = ziadatel.match(/\d+/);
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        'spis-UB': appState.spis, // ZMENA: Globálny spis
+                        ...okresData,
+                        'spis-UB': spis,
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         Vlastnik: row[columnMap['obchodné meno alebo názov alebo meno a priezvisko']],
                         adresa: adresa,
                         PSC: psc,
@@ -389,10 +423,12 @@ export const agendaConfigs = {
                 batchSize: 8,
                 title: 'Podacie hárky',
                 zipName: 'podacieHarky_UB.zip',
-                dataMapper: ({ batch, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ batch, columnMap, okresData, spis, selectedOU }) => {
                     let totalCena = 0;
                     const batchRows = batch.map((row, index) => {
                         totalCena += POSTOVNE;
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         const adresaPlna = row[columnMap['sídlo alebo miesto pobytu']] || '';
                         const [adresa, psc] = adresaPlna.includes(',') ? adresaPlna.split(',').map(s => s.trim()) : [adresaPlna, ''];
                         const ziadatel = row[columnMap['názov žiadateľa']] || '';
@@ -408,10 +444,12 @@ export const agendaConfigs = {
                             eur: POSTOVNE.toFixed(2)
                         };
                     });
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        'spis-UB': appState.spis, // ZMENA: Globálny spis
-                        ID_OU: appState.selectedOU.toLowerCase(),
+                        ...okresData,
+                        'spis-UB': spis,
+                        ID_OU: selectedOU.toLowerCase(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         ID_PH: "UB",
                         cena: totalCena.toFixed(2),
                         rows: batchRows,
@@ -427,16 +465,20 @@ export const agendaConfigs = {
                 groupByColumn: 'Obec',
                 title: 'Zoznamy na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_UB.zip',
-                dataMapper: ({ groupRows, columnMap, groupKey, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ groupRows, columnMap, groupKey, okresData, spis }) => {
                     const rows = groupRows.map((row, index) => ({
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         A: index + 1,
                         B: row[columnMap['obchodné meno alebo názov alebo meno a priezvisko']],
                         C: row[columnMap['sídlo alebo miesto pobytu']]
                     }));
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        spis_OU: appState.spis, // ZMENA: Globálny spis
-                        Okres: appState.okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
+                        ...okresData,
+                        spis_OU: spis,
+                        Okres: okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         obec: groupKey,
                         rows: rows,
                         uniqueRows: Array.from(new Set(rows.map(r => JSON.stringify(r)))).map(s => JSON.parse(s))
@@ -466,14 +508,16 @@ export const agendaConfigs = {
                 templatePath: TEMPLATE_PATHS.dr.rozhodnutie, // <-- ZMENA
                 title: 'Rozhodnutia',
                 zipName: 'rozhodnutia_DR.zip',
-                dataMapper: ({ row, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ row, columnMap, okresData, spis, selectedOU }) => {
                     const findKey = (name) => Object.keys(columnMap).find(key => key.trim().toLowerCase() === name.toLowerCase());
 
                     return {
-                        ...appState.okresData,
-                        Nazov_OU_upper: appState.okresData.Okresny_urad.toUpperCase(),
-                        'spis-DR': appState.spis, // ZMENA: Globálny spis
-                        ID_OU: appState.selectedOU.toLowerCase(),
+                        ...okresData,
+                        Nazov_OU_upper: okresData.Okresny_urad.toUpperCase(),
+                        'spis-DR': spis,
+                        ID_OU: selectedOU.toLowerCase(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         menoPriezvisko: row[columnMap[findKey('Titul, meno a priezvisko')]],
                         adresa: row[columnMap[findKey('adresa trvalého pobytu')]],
                         RC: row[columnMap[findKey('rodné číslo')]],
@@ -490,8 +534,10 @@ export const agendaConfigs = {
                 templatePath: TEMPLATE_PATHS.dr.obalky, // <-- ZMENA
                 title: 'Obálky',
                 zipName: 'obalky_DR.zip',
-                dataMapper: ({ row, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ row, columnMap, okresData, spis }) => {
                     const findKey = (name) => Object.keys(columnMap).find(key => key.trim().toLowerCase() === name.toLowerCase());
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     const adresaPlna = row[columnMap[findKey('adresa trvalého pobytu')]] || '';
                     
                     let adresa = adresaPlna;
@@ -501,10 +547,11 @@ export const agendaConfigs = {
                         adresa = adresaPlna.substring(0, lastCommaIndex).trim();
                         psc = adresaPlna.substring(lastCommaIndex + 1).trim();
                     }
-                    
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        'spis-DR': appState.spis, // ZMENA: Globálny spis
+                        ...okresData,
+                        'spis-DR': spis,
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         menoPriezvisko: row[columnMap[findKey('Titul, meno a priezvisko')]],
                         adresa: adresa,
                         PSC: psc,
@@ -520,12 +567,14 @@ export const agendaConfigs = {
                 batchSize: 8,
                 title: 'Podacie hárky',
                 zipName: 'podacieHarky_DR.zip',
-                dataMapper: ({ batch, columnMap, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ batch, columnMap, okresData, spis, selectedOU }) => {
                     let totalCena = 0;
                     const findKey = (name) => Object.keys(columnMap).find(key => key.trim().toLowerCase() === name.toLowerCase());
                     
                     const batchRows = batch.map((row, index) => {
                         totalCena += POSTOVNE;
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         const adresaPlna = row[columnMap[findKey('adresa trvalého pobytu')]] || '';
                         
                         let adresa = adresaPlna;
@@ -544,10 +593,12 @@ export const agendaConfigs = {
                             eur: POSTOVNE.toFixed(2)
                         };
                     });
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        'spis-DR': appState.spis, // ZMENA: Globálny spis
-                        ID_OU: appState.selectedOU.toLowerCase(),
+                        ...okresData,
+                        'spis-DR': spis,
+                        ID_OU: selectedOU.toLowerCase(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         ID_PH: "DR",
                         cena: totalCena.toFixed(2),
                         rows: batchRows,
@@ -563,17 +614,21 @@ export const agendaConfigs = {
                 groupByColumn: 'Obec',
                 title: 'Zoznamy na doručovanie',
                 zipName: 'zoznamZasielokDorucenie_DR.zip',
-                dataMapper: ({ groupRows, columnMap, groupKey, appState }) => {
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
+                dataMapper: ({ groupRows, columnMap, groupKey, okresData, spis }) => {
                     const findKey = (name) => Object.keys(columnMap).find(key => key.trim().toLowerCase() === name.toLowerCase());
                     const rows = groupRows.map((row, index) => ({
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         A: index + 1,
                         B: row[columnMap[findKey('Titul, meno a priezvisko')]],
                         C: row[columnMap[findKey('adresa trvalého pobytu')]]
                     }));
+                // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
                     return {
-                        ...appState.okresData,
-                        spis_OU: appState.spis, // ZMENA: Globálny spis
-                        Okres: appState.okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
+                        ...okresData,
+                        spis_OU: spis,
+                        Okres: okresData.Okresny_urad.replace('Okresný úrad', '').trim(),
+                // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
                         obec: groupKey,
                         rows: rows,
                         uniqueRows: Array.from(new Set(rows.map(r => JSON.stringify({B: r.B, C: r.C})))).map(s => JSON.parse(s))

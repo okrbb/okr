@@ -256,7 +256,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         initializeDocumentProcessor(agendaConfig); updateUIState();
     }
     
-    // initializeDocumentProcessor (bez zmeny, okrem načítania elementu)
+    // initializeDocumentProcessor (bez zmeny)
+    // ODPOJILI SME PRIAME ODOVZDÁVANIE AppState DO dataMapper-ov,
+    // ale ponechávame ho pre `checkAllButtonsState`
     function initializeDocumentProcessor(baseConfig) { const fullConfig = { sectionPrefix: AppState.selectedAgendaKey, appState: AppState, dataInputs: baseConfig.dataInputs, previewElementId: 'preview-container', dataProcessor: baseConfig.dataProcessor, generators: baseConfig.generators, onDataProcessed: () => { const agendaView = document.getElementById('agenda-view'); const genTab = agendaView?.querySelector('.agenda-tab[data-tab="generovanie"]'); if (genTab) { genTab.classList.remove('is-disabled'); showNotification('Dáta spracované. Karta "Generovanie" je teraz dostupná.', 'success'); } updateUIState(); }, onMailGenerationStart: () => { AppState.municipalitiesMailContent = {}; AppState.zoznamyPreObceGenerated = false; }, onMailDataGenerated: (groupKey, mailData) => { AppState.municipalitiesMailContent[groupKey] = mailData; }, onMailGenerationComplete: () => { AppState.zoznamyPreObceGenerated = true; updateUIState(); } }; AppState.processor = new DocumentProcessor(fullConfig); AppState.processor.loadTemplates(); if (AppState.selectedAgendaKey === 'vp') loadPscFile(); }
     async function loadPscFile() { try { const response = await fetch(TEMPLATE_PATHS.pscFile); if (!response.ok) throw new Error(`Súbor PSČ sa nepodarilo načítať: ${response.statusText}`); const arrayBuffer = await response.arrayBuffer(); AppState.processor.state.data.psc = arrayBuffer; AppState.processor.checkAndProcessData(); } catch (error) { showErrorModal({ message: 'Chyba pri automatickom načítaní súboru PSČ.', details: error.message }); } }
     
@@ -334,10 +336,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (removeButton) { /* ... (kód pre remove file) ... */ 
                  e.stopPropagation(); const inputId = removeButton.dataset.inputId; const input = document.getElementById(inputId); if (!input) return; const dropZone = document.getElementById(input.dataset.dropzoneId); delete AppState.files[inputId]; input.value = ''; if(dropZone) dropZone.classList.remove('loaded'); if (AppState.processor) { const inputConf = agendaConfigs[AppState.selectedAgendaKey]?.dataInputs.find(i => i.id === inputId); const stateKey = inputConf ? inputConf.stateKey : null; if (stateKey) delete AppState.processor.state.data[stateKey]; AppState.processor.state.processedData = null; const previewContainer = document.getElementById('preview-container'); if (previewContainer) previewContainer.innerHTML = `<div class="empty-state-placeholder"><i class="fas fa-eye-slash"></i><h4>Náhľad dát bol vymazaný</h4><p>Prosím, nahrajte vstupné súbory na zobrazenie náhľadu.</p></div>`; AppState.processor.checkAllButtonsState(); } updateUIState(); return; 
             }
+            
+            // === ZAČIATOK KĽÚČOVEJ ZMENY (REFAKTORING) ===
             const genButton = e.target.closest('button[data-generator-key]'); 
-            if (genButton) { /* ... (kód pre generátory) ... */ 
-                 e.stopPropagation(); if (!AppState.processor) return; const genKey = genButton.dataset.generatorKey; const genConf = agendaConfigs[AppState.selectedAgendaKey]?.generators[genKey]; if (genConf) { switch (genConf.type) { case 'row': AppState.processor.generateRowByRow(genKey); break; case 'batch': AppState.processor.generateInBatches(genKey); break; case 'groupBy': AppState.processor.generateByGroup(genKey); break; default: showErrorModal({ message: `Neznámy typ generátora: ${genConf.type}` }); } } return; 
+            if (genButton) { 
+                 e.stopPropagation(); if (!AppState.processor) return; 
+                 const genKey = genButton.dataset.generatorKey; 
+                 const genConf = agendaConfigs[AppState.selectedAgendaKey]?.generators[genKey]; 
+                 
+                 // Vytvoríme čistý kontextový objekt namiesto odovzdávania celého AppState
+                 const context = {
+                     spis: AppState.spis,
+                     okresData: AppState.okresData,
+                     selectedOU: AppState.selectedOU
+                 };
+
+                 if (genConf) { 
+                     switch (genConf.type) { 
+                         case 'row': AppState.processor.generateRowByRow(genKey, context); break; 
+                         case 'batch': AppState.processor.generateInBatches(genKey, context); break; 
+                         case 'groupBy': AppState.processor.generateByGroup(genKey, context); break; 
+                         default: showErrorModal({ message: `Neznámy typ generátora: ${genConf.type}` }); 
+                     } 
+                 } 
+                 return; 
             }
+            // === KONIEC KĽÚČOVEJ ZMENY (REFAKTORING) ===
+
             const mailButton = e.target.closest('#send-mail-btn-vp'); 
             if (mailButton) { /* ... (kód pre mail button) ... */ 
                  e.stopPropagation(); showMailListModal(); return; 
