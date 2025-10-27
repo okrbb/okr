@@ -1,194 +1,73 @@
 /* js/_notifications.css */
 /* ================================================= */
-/* === ŠTÝLY PRE NOTIFIKÁCIE (REDESIGN des.html) === */
+/* === ŠTÝLY PRE NOTIFIKAČNÉ CENTRUM (V PANELI) === */
 /* ================================================= */
 
-/* === UPRAVENÝ ŠTÝL PRE KONTJNER (Presunuté dole) === */
-#notification-toast-container {
-    position: fixed;
-    bottom: var(--space-6); /* 1.5rem */
-    right: var(--space-6); /* 1.5rem */
-    z-index: 10000;
-    
-    display: flex;
-    flex-direction: column; 
-    gap: var(--space-3); /* 0.75rem */
-    align-items: flex-end;
-    max-width: 400px;
-}
-/* === KONIEC ÚPRAVY KONTJNERA === */
-
-
-/* ================================================= */
-/* === NOVÝ DIZAJN PRE TOAST NOTIFIKÁCIE (z des.html) === */
-/* ================================================= */
-.toast {
-    position: relative;
-    min-width: 320px;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--primary-color);
-    border-radius: var(--radius-lg);
-    padding: var(--space-4);
-    box-shadow: var(--shadow-xl);
-    display: flex;
-    align-items: center; 
-    gap: var(--space-3);
-    opacity: 0; 
-    animation: slide-up var(--duration-normal) var(--ease-out) forwards;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.toast.hide {
-    opacity: 0; 
-    transform: translateX(400px); 
-}
-.toast-icon {
-    width: 24px;
-    height: 24px;
-    border-radius: var(--radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: var(--font-size-sm);
-}
-.toast-content {
-    flex: 1;
-}
-.toast-title {
-    display: none; 
-}
-.toast-message {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    margin: 0;
-}
-.toast--success {
-    border-left-color: var(--success-color);
-}
-.toast--success .toast-icon {
-    background: var(--success-light);
-    color: var(--success-color);
-}
-.toast--error {
-    border-left-color: var(--danger-color);
-}
-.toast--error .toast-icon {
-    background: var(--danger-light);
-    color: var(--danger-color);
-}
-.toast--info {
-    border-left-color: var(--primary-color);
-}
-.toast--info .toast-icon {
-    background: var(--primary-light);
-    color: var(--primary-color);
-}
-.toast--warning {
-    border-left-color: var(--warning-color);
-}
-.toast--warning .toast-icon {
-    background: var(--warning-light);
-    color: var(--warning-color);
-}
-/* === KONIEC NOVÉHO DIZAJNU PRE TOAST === */
-
-
-/* ================================================= */
-/* === ŠTÝLY PRE NOTIFIKAČNÉ CENTRUM (ZVONČEK) === */
-/* ================================================= */
-
-.notification-bell-wrapper { 
-    position: relative; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-}
-.notification-badge { 
-    position: absolute; 
-    /* === ZMENA: Upravená pozícia a pridaný z-index === */
-    top: -3px; 
-    right: -3px; 
-    z-index: 10; /* Zabezpečí, že je nad ikonou */
-    /* === KONIEC ZMENY === */
-    background-color: var(--danger-color); 
-    color: white; 
-    border-radius: 50%; 
-    padding: 2px 6px; 
-    font-size: 0.7rem; 
-    font-weight: bold; 
-    border: 2px solid var(--surface-color);
-}
-.notification-center-panel { 
-    position: absolute; 
-    bottom: 10px; /* Zarovná sa 10px od spodku tlačidla */
-    left: 100%;  /* Posunie sa úplne vpravo od svojho rodiča (tlačidla) */
-    margin-left: 10px; /* Pridá malú medzeru medzi panel a bočný panel */ 
-    max-height: 400px; 
-    background-color: var(--surface-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-xl);
-    z-index: 2000; 
-    opacity: 0; 
-    transform: translateY(10px); 
-    visibility: hidden; 
-    transition: var(--transition); 
-    display: flex; 
-    flex-direction: column; 
-    border: 1px solid var(--border-color);
-}
-.notification-center-panel.show { opacity: 1; transform: translateY(0); visibility: visible; }
-.notification-panel-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: 1rem; 
-    border-bottom: 1px solid var(--border-color); 
-}
-.notification-panel-header h4 { 
+/* Štýly pre zoznam v bočnom paneli */
+.notification-list { 
+    list-style: none; 
+    padding: 0; 
     margin: 0; 
-    font-family: var(--font-display);
-    color: var(--text-color);
+    flex-grow: 1; /* Zaberie miesto v .sidebar-notifications */
+    overflow-y: auto; /* Rolovanie pre zoznam */
+    background: var(--neutral-50);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    padding: var(--space-2);
+    min-height: 100px; /* Minimálna výška */
+    
+    /* === ZAČIATOK ZMENY: Skrytie posuvníka === */
+    scrollbar-width: none; /* Firefox */
 }
-.notification-panel-header button { 
-    background: none; 
-    border: none; 
-    color: var(--primary-color); 
-    cursor: pointer; 
-    font-size: 0.8rem; 
-    font-weight: 500;
+.notification-list::-webkit-scrollbar {
+    display: none; /* WebKit (Chrome, Safari) */
 }
-.notification-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; }
+/* === KONIEC ZMENY === */
+
 .notification-item { 
     display: flex; 
-    gap: 1rem; 
-    padding: 1rem; 
+    gap: var(--space-3); /* 0.75rem */
+    padding: var(--space-3); /* 0.75rem */
     border-bottom: 1px solid var(--border-color); 
-    font-size: 0.9rem; 
+    font-size: 0.8rem; /* Menšie písmo */
+    line-height: 1.4;
 }
 .notification-item:last-child { border-bottom: none; }
-.notification-item .icon { font-size: 1.2rem; }
+
+.notification-item .icon { 
+    font-size: 1rem; /* Menšia ikona */
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
 .notification-item .content { flex: 1; }
+
 .notification-item .content p { 
     color: var(--text-color); 
-
-    /* === ZMENA: Vynútenie jedného riadku s elipsou (...) === */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* === ZMENA: Povolené zalamovanie, odstránená elipsa === */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word; /* Zalamovanie dlhých slov */
+    margin: 0;
     /* === KONIEC ZMENY === */
 }
+
 .notification-item .meta { 
-    font-size: 0.75rem; 
+    font-size: 0.7rem; /* Menšie meta */
     color: var(--text-secondary);
     margin-top: 0.25rem; 
 }
+
 .notification-item.success .icon { color: var(--success-color); }
 .notification-item.error .icon { color: var(--danger-color); }
 .notification-item.info .icon { color: var(--primary-color); }
 .notification-item.warning .icon { color: var(--warning-color); }
+
 .notification-list .empty-state { 
     text-align: center; 
-    padding: 2rem; 
+    padding: var(--space-4); /* Menší padding */
     color: var(--text-secondary);
+    font-size: 0.8rem;
 }

@@ -75,7 +75,8 @@ body {
     height: 100vh;
     z-index: 10;
     /* Pridaná plynulá zmena farieb */
-    transition: background-color var(--duration-normal) ease-out, border-color var(--duration-normal) ease-out, box-shadow var(--duration-normal) ease-out;
+    transition: background-color var(--duration-normal) ease-out, border-color var(--duration-normal) ease-out, box-shadow var(--duration-normal) ease-out, width var(--duration-normal) ease-out, height var(--duration-normal) ease-out;
+    flex-shrink: 0; /* Zabraňuje zmenšeniu na mobile */
 }
 
 /* === NOVÁ: Hlavička loga (z des.html) === */
@@ -89,6 +90,7 @@ body {
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
     transition: var(--transition); /* Pridané pre plynulú zmenu */
+    flex-shrink: 0; /* Zabraňuje zmenšeniu */
 }
 .logo-circle {
     width: 48px;
@@ -136,6 +138,7 @@ body {
 
 .sidebar-context {
     margin-bottom: 1.5rem;
+    flex-shrink: 0; /* Zabraňuje zmenšeniu */
 }
 .context-label {
     font-weight: 600;
@@ -151,7 +154,19 @@ body {
     flex-grow: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    /* === ZAČIATOK ZMENY === */
+    min-height: 100px; /* Zaistí, že sa menu úplne neskryje */
+    
+    /* Skrytie posuvníka */
+    scrollbar-width: none; /* Firefox */
+    /* === KONIEC ZMENY === */
 }
+/* === ZAČIATOK ZMENY: Skrytie posuvníka pre WebKit === */
+.sidebar-nav::-webkit-scrollbar {
+    display: none;
+}
+/* === KONIEC ZMENY === */
+
 .nav-list {
     list-style: none;
     padding: 0;
@@ -176,6 +191,7 @@ body {
     position: relative;
     overflow: hidden;
     border: none;
+    flex-shrink: 0; /* Pre responzivitu */
 }
 .nav-link::before {
     content: '';
@@ -218,6 +234,42 @@ body {
 }
 
 
+/* === ZAČIATOK ZMENY: Nové štýly pre blok notifikácií === */
+.sidebar-notifications {
+    margin-top: var(--space-4); /* Medzera od navigácie */
+    flex-shrink: 0; /* Zabraňuje zmenšeniu */
+    display: flex;
+    flex-direction: column;
+    max-height: 200px; /* Pevná maximálna výška */
+}
+.sidebar-notifications .notification-list {
+    /* Štýly sú definované v _notifications.css */
+    flex-grow: 1;
+    overflow-y: auto;
+}
+.sidebar-notifications .btn {
+    margin-top: var(--space-3);
+    width: 100%;
+    padding: var(--space-2); /* Menšie tlačidlo */
+    font-size: 0.8rem;
+    flex-shrink: 0; /* Zabezpečí, že tlačidlo sa nezmenší */
+}
+
+/* === ZAČIATOK ZMENY: Hover štýl pre tlačidlo Vymazať === */
+#clear-notifications-btn {
+    background-color: var(--neutral-700);
+    color: white;
+    border: none;
+}
+#clear-notifications-btn:hover {
+    background-color: var(--danger-color);
+    color: white;
+    transform: translateY(-2px) scale(1.02); /* Pridanie rovnakého hover efektu */
+    box-shadow: var(--shadow-lg);
+}
+/* === KONIEC ZMENY === */
+
+
 .sidebar-footer {
     margin-top: auto;
     padding-top: var(--space-4); /* 1rem */
@@ -228,6 +280,7 @@ body {
     justify-content: space-around;
     align-items: center;
     transition: border-color var(--duration-normal) ease-out; /* Pridané pre plynulú zmenu */
+    flex-shrink: 0; /* Zabezpečí, že päta sa nezmenší */
 }
 .sidebar-footer .btn {
     width: 44px;
@@ -459,3 +512,110 @@ body {
     display: block;
     animation: fade-in 0.5s; 
 }
+
+
+/* === ZAČIATOK ZMENY: Responzívne pravidlá === */
+
+/* Tablet (zmenšenie paddingu) */
+@media (max-width: 1024px) {
+    .dashboard-content {
+        padding: var(--space-6) var(--space-8); /* 1.5rem 2rem */
+    }
+    .workflow-step {
+        padding: 1rem 1.5rem;
+    }
+}
+
+/* Mobil (zmena layoutu) */
+@media (max-width: 768px) {
+    .dashboard-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .dashboard-sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        box-shadow: var(--shadow-md); /* Tieň pod lištou */
+        padding: var(--space-4); /* Menší padding */
+        flex-direction: row; /* Zarovnanie do riadku */
+        flex-wrap: wrap; /* Zalamovanie */
+        gap: var(--space-4);
+    }
+    
+    .logo-section {
+        margin-bottom: 0;
+        flex-basis: 300px; /* Pevná šírka pre logo */
+    }
+    
+    .sidebar-context {
+        margin-bottom: 0;
+        flex-grow: 1; /* Zaberie zvyšné miesto */
+        min-width: 250px; /* Minimálna šírka */
+    }
+    
+    .sidebar-nav {
+        order: 1; /* Posunie sa na ďalší riadok */
+        width: 100%;
+        flex-grow: 0;
+        overflow-y: hidden;
+        overflow-x: auto; /* Horizontálne rolovanie */
+        min-height: auto;
+    }
+    .nav-list {
+        flex-direction: row; /* Agendy vedľa seba */
+        gap: var(--space-1);
+    }
+    .nav-link {
+        flex-shrink: 0; /* Zabraňuje zmenšeniu položiek */
+        padding: var(--space-2) var(--space-3);
+    }
+    .nav-link:not(.disabled):hover {
+        transform: none; /* Vypnutie hover efektu na mobile */
+    }
+    .nav-link.active::before {
+        width: 100%;
+        height: 3px;
+        top: auto;
+        bottom: 0;
+        transform: scaleX(1); /* Zmena animácie na X-ovú os */
+    }
+    
+    .sidebar-notifications {
+        order: 2;
+        width: 100%;
+        margin-top: 0;
+        max-height: 150px; /* Nižší limit na mobile */
+    }
+    
+    .sidebar-footer {
+        order: 3;
+        width: 100%;
+        margin-top: 0;
+        padding-top: var(--space-4);
+        justify-content: center; /* Centrovanie tlačidiel */
+    }
+    
+    .dashboard-content {
+        padding: var(--space-4) var(--space-4); /* 1rem */
+    }
+    
+    .content-header {
+        margin-bottom: var(--space-4);
+        padding-bottom: var(--space-4);
+    }
+    .content-header h2 {
+        font-size: 1.75rem; /* Menší nadpis */
+    }
+    .header-meta {
+        align-items: flex-start;
+        width: 100%;
+    }
+    
+    .agenda-tabs-container {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+/* === KONIEC ZMENY === */
