@@ -240,7 +240,7 @@ body {
     flex-shrink: 0; /* Zabraňuje zmenšeniu */
     display: flex;
     flex-direction: column;
-    max-height: 300px; /* Pevná maximálna výška */
+    max-height: 200px; /* Pevná maximálna výška */
 }
 .sidebar-notifications .notification-list {
     /* Štýly sú definované v _notifications.css */
@@ -620,3 +620,4 @@ body {
 }
 
 /* === KONIEC ZMENY === */
+
