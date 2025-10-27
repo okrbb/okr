@@ -52,8 +52,8 @@ body {
     position: relative; /* Pre z-index pozadia */
 }
 
-/* === ZMENA: Glassmorphic  (z des.html) === */
-.dashboard- {
+/* === ZMENA: Glassmorphic Sidebar (z des.html) === */
+.dashboard-sidebar {
     width: 300px;
     /* Priehľadné pozadie s gradientom a blur-om */
     background: linear-gradient(
@@ -111,7 +111,7 @@ body {
     font-size: 1.5rem;
 }
 /* Logo je na vrchu */
-.-logo {
+.sidebar-logo {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -618,6 +618,4 @@ body {
         white-space: nowrap;
     }
 }
-
 /* === KONIEC ZMENY === */
-
