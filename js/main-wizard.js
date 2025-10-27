@@ -80,11 +80,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const helpCenterBtn = document.getElementById('show-help-center');
     const resetTourBtn = document.getElementById('reset-tour-btn');
 
-    const notificationBellBtn = document.getElementById('notification-bell-btn');
-    const notificationPanel = document.getElementById('notification-center-panel');
+    // === ZAČIATOK ZMENY: Odstránené elementy zvončeka ===
+    // const notificationBellBtn = document.getElementById('notification-bell-btn');
+    // const notificationPanel = document.getElementById('notification-center-panel');
+    // const notificationBadge = document.querySelector('.notification-badge');
     const notificationList = document.getElementById('notification-list');
-    const notificationBadge = document.querySelector('.notification-badge');
     const clearNotificationsBtn = document.getElementById('clear-notifications-btn');
+    // === KONIEC ZMENY ===
 
     // Inicializácia
     populateOkresnyUradSelect(OKRESNE_URADY); 
@@ -103,11 +105,20 @@ document.addEventListener('DOMContentLoaded', async () => {
      * === KĽÚČOVÁ ZMENA: Listener pre `helpCenterBtn` volá `showHelpCenterModal` ===
      */
     function setupStaticListeners() {
-        // Notifikácie (bez zmeny)
-        notificationBellBtn.addEventListener('click', (e) => { e.stopPropagation(); notificationPanel.classList.toggle('show'); });
-        clearNotificationsBtn.addEventListener('click', () => { AppState.notifications = []; renderNotifications(); showNotification('História notifikácií bola vymazaná.', 'info'); });
-        document.addEventListener('add-notification', (e) => { addNotification(e.detail.message, e.detail.type); });
-        document.addEventListener('click', (e) => { if (!notificationPanel.contains(e.target) && notificationPanel.classList.contains('show')) { notificationPanel.classList.remove('show'); } });
+        // === ZAČIATOK ZMENY: Zjednodušené listenery notifikácií ===
+        // Notifikácie
+        clearNotificationsBtn.addEventListener('click', () => { 
+            AppState.notifications = []; 
+            renderNotifications(); 
+            // Priamo zavoláme addNotification, keďže showNotification už len dispatchuje
+            addNotification('História notifikácií bola vymazaná.', 'info'); 
+        });
+        
+        document.addEventListener('add-notification', (e) => { 
+            addNotification(e.detail.message, e.detail.type); 
+        });
+        // Odstránené listenery pre notificationBellBtn a zatváranie panelu
+        // === KONIEC ZMENY ===
 
         // Vlastný select pre OÚ (bez zmeny)
         const ouSelectWrapper = document.getElementById('ou-select-wrapper');
@@ -155,9 +166,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (agendaView) setupTabListeners(agendaView);
     }
 
-    // Notifikácie (bez zmeny)
-    function renderNotifications() { if (!notificationList) return; if (AppState.notifications.length === 0) { notificationList.innerHTML = '<li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>'; } else { notificationList.innerHTML = AppState.notifications.slice(0, 50).map(n => `<li class="notification-item ${n.type}"><i class="fas ${getIconForType(n.type)} icon"></i><div class="content"><p>${n.message}</p><div class="meta">${new Date(n.timestamp).toLocaleTimeString()}</div></div></li>`).join(''); } const unreadCount = AppState.notifications.length; notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount; notificationBadge.style.display = unreadCount > 0 ? 'block' : 'none'; }
-    function addNotification(message, type = 'info') { const newNotification = { id: Date.now(), message, type, timestamp: new Date() }; AppState.notifications.unshift(newNotification); renderNotifications(); }
+    // === ZAČIATOK ZMENY: Zjednodušené funkcie notifikácií ===
+    // Notifikácie
+    function renderNotifications() { 
+        if (!notificationList) return; 
+        if (AppState.notifications.length === 0) { 
+            notificationList.innerHTML = '<li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>'; 
+        } else { 
+            notificationList.innerHTML = AppState.notifications.slice(0, 50).map(n => 
+                `<li class="notification-item ${n.type}">
+                    <i class="fas ${getIconForType(n.type)} icon"></i>
+                    <div class="content">
+                        <p>${n.message}</p>
+                        <div class="meta">${new Date(n.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                </li>`
+            ).join('');
+            
+            // Automatické rolovanie na najnovšiu notifikáciu (navrch)
+            notificationList.scrollTop = 0;
+        } 
+        // Odstránená logika pre notificationBadge
+    }
+    
+    function addNotification(message, type = 'info') { 
+        const newNotification = { id: Date.now(), message, type, timestamp: new Date() }; 
+        AppState.notifications.unshift(newNotification); // Pridá na začiatok
+        renderNotifications(); 
+    }
+    // === KONIEC ZMENY ===
+    
     function getIconForType(type) { const icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' }; return icons[type] || 'fa-info-circle'; }
 
     // Riadenie stavu UI (bez zmeny, okrem načítania elementov)
@@ -193,7 +231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Hlavná logika a funkcie
     function resetAgendaState() { localStorage.removeItem('krokr-spis'); Object.assign(AppState, { spis: null, selectedAgendaKey: null, processor: null, files: {}, municipalitiesMailContent: {}, zoznamyPreObceGenerated: false, }); showWelcomeMessage(); }
-    function resetApp() { localStorage.removeItem('krokr-lastOU'); localStorage.removeItem('krokr-lastAgenda'); resetAgendaState(); AppState.selectedOU = null; AppState.okresData = null; const ouLabel = document.getElementById('okresny-urad-label'); const ouOptions = document.getElementById('okresny-urad-options'); if (ouLabel) ouLabel.textContent = ''; if (ouOptions) { ouOptions.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected')); const placeholder = ouOptions.querySelector('.custom-select-option[data-value=""]'); if (placeholder) placeholder.classList.add('selected'); } AppState.notifications = []; renderNotifications(); updateUIState(); showNotification('Aplikácia bola resetovaná.', 'info'); }
+    function resetApp() { localStorage.removeItem('krokr-lastOU'); localStorage.removeItem('krokr-lastAgenda'); resetAgendaState(); AppState.selectedOU = null; AppState.okresData = null; const ouLabel = document.getElementById('okresny-urad-label'); const ouOptions = document.getElementById('okresny-urad-options'); if (ouLabel) ouLabel.textContent = ''; if (ouOptions) { ouOptions.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected')); const placeholder = ouOptions.querySelector('.custom-select-option[data-value=""]'); if (placeholder) placeholder.classList.add('selected'); } AppState.notifications = []; renderNotifications(); updateUIState(); addNotification('Aplikácia bola resetovaná.', 'info'); } // Zmenené na addNotification
 
     function setOkresnyUrad(ouKey) {
         const ouLabel = document.getElementById('okresny-urad-label'); 
@@ -211,7 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectedOption = ouOptions.querySelector(`.custom-select-option[data-value="${ouKey}"]`); 
         if (selectedOption) { ouLabel.textContent = selectedOption.textContent; ouOptions.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected')); selectedOption.classList.add('selected'); }
         AppState.selectedOU = ouKey; AppState.okresData = OKRESNE_URADY[ouKey]; localStorage.setItem('krokr-lastOU', ouKey);
-        if (!hasData) showNotification(`Vybraný OÚ: ${AppState.okresData.Okresny_urad}`, 'success');
+        if (!hasData) addNotification(`Vybraný OÚ: ${AppState.okresData.Okresny_urad}`, 'success'); // Zmenené na addNotification
         
         // === KĽÚČOVÁ ZMENA: Namiesto renderHelpCenterView len aktualizujeme hlavičku agendy ===
         if (AppState.currentView === 'agenda') {

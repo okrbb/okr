@@ -107,53 +107,9 @@ export function showErrorModal({ title = 'Chyba', message, details = '' }) {
  */
 // === FUNKCIA UPRAVENÁ PRE NOVÝ DIZAJN (des.html) ===
 export function showNotification(message, type = 'info', duration = 3000) { 
-    // === ZAČIATOK IMPLEMENTÁCIE ===
-    
-    const container = document.getElementById('notification-toast-container');
-    if (!container) {
-        console.error('Chýba #notification-toast-container v DOMe.');
-        return;
-    }
-
-    // 1. Vytvoríme "toast" notifikáciu
-    const notification = document.createElement('div');
-    notification.className = `toast toast--${type}`;
-    
-    // Automatický titulok a ikona podľa typu (podľa des.html)
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-exclamation-circle',
-        warning: 'fa-exclamation-triangle',
-        info: 'fa-info-circle'
-    };
-    
-    // === ZMENA: Odstránený objekt 'titles' ===
-    // const titles = { ... };
-    
-    // === ZMENA: Odstránený .toast-title z HTML ===
-    notification.innerHTML = `
-        <div class="toast-icon">
-            <i class="fas ${icons[type]}"></i>
-        </div>
-        <div class="toast-content">
-            <div class="toast-message">${message}</div>
-        </div>
-    `;
-    
-    // Vložíme notifikáciu (zmenené na .appendChild() kvôli flex-direction: column)
-    container.appendChild(notification);
+    // === ZAČIATOK ZMENY: Celá časť vytvárajúca "toast" bola odstránená ===
+    // "Toast" sa už nezobrazuje, notifikácia ide priamo do centra.
     // === KONIEC ZMENY ===
-
-    // Skryjeme ju po 'duration'
-    setTimeout(() => {
-        notification.classList.add('hide'); // Pridá triedu pre animáciu výstupu
-        // Odstránime element z DOMu po skončení animácie
-        setTimeout(() => {
-            if (notification.parentNode === container) {
-                container.removeChild(notification);
-            }
-        }, 300); // 300ms (podľa novej transition v CSS)
-    }, duration);
 
     // 2. Odošleme udalosť pre centrum notifikácií (zvonček) - bezo zmeny
     document.dispatchEvent(new CustomEvent('add-notification', {
