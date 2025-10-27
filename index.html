@@ -15,9 +15,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.57.3/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
-    <style>
-        /* Štýly pre .main-view boli presunuté do _layout.css pre plynulejší prechod */
-    </style>
     </head>
 <body>
     <div class="dashboard-container">
@@ -56,23 +53,14 @@
                 </ul>
             </nav>
             
+            <div class="sidebar-notifications">
+                <label class="context-label">História udalostí</label>
+                <ul id="notification-list" class="notification-list">
+                    <li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>
+                </ul>
+                <button id="clear-notifications-btn" class="btn btn--secondary">Vymazať históriu</button>
+            </div>
             <div class="sidebar-footer">
-                <div class="notification-bell-wrapper" data-tooltip="Notifikácie">
-                    <button id="notification-bell-btn" class="btn btn--secondary">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge" style="display: none;">0</span>
-                    </button>
-                    <div id="notification-center-panel" class="notification-center-panel">
-                        <div class="notification-panel-header">
-                            <h4>Notifikácie</h4>
-                            <button id="clear-notifications-btn">Vymazať všetky</button>
-                        </div>
-                        <ul id="notification-list" class="notification-list">
-                            <li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>
-                        </ul>
-                    </div>
-                </div>
-                
                 <button id="show-help-center" class="btn btn--secondary" data-tooltip="Centrum nápovedy"><i class="fas fa-life-ring"></i></button>
                 
                 <button id="reset-tour-btn" class="btn btn--secondary" data-tooltip="Zobraziť sprievodcu"><i class="fas fa-route"></i></button>
@@ -159,8 +147,6 @@
 
     <div id="spinner-overlay" class="spinner-overlay" style="display: flex;"><div class="spinner"></div></div>
     <div id="modal-container"></div>
-    
-    <div id="notification-toast-container"></div> 
     
     <script src="js/config.js" type="module"></script>
 </body>
