@@ -274,8 +274,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         showView('agenda'); 
         const currentAgendaView = document.getElementById('agenda-view'); 
         if (currentAgendaView) { setupAgendaViewListeners(currentAgendaView, agendaViewListenersController.signal); }
+        
+        // --- ZAČIATOK OPRAVY ---
+        // 1. Vždy najprv vykreslíme tabulátory. Ak je AppState.spis null,
+        //    vďaka oprave v renderAgendaTabs sa starý spis vymaže.
+        renderAgendaTabs(agendaKey, agendaConfig);
+        
         const globalSpis = localStorage.getItem(`krokr-spis`); 
-        if (globalSpis) { AppState.spis = globalSpis; renderAgendaTabs(agendaKey, agendaConfig); } else { showSpisModal(agendaKey, agendaConfig); }
+        if (globalSpis) { 
+            // 2. Ak spis existuje, dodatočne ho načítame a aktualizujeme UI.
+            AppState.spis = globalSpis; 
+            if (currentAgendaView) {
+                currentAgendaView.querySelector('.spis-display span').textContent = AppState.spis;
+            }
+            // Aktualizujeme aj stav tlačidiel v processore
+            if (AppState.processor) {
+                AppState.processor.checkAllButtonsState();
+            }
+        } else { 
+            // 3. Ak spis neexistuje, UI je už čisté, stačí zobraziť modal.
+            showSpisModal(agendaKey, agendaConfig); 
+        }
+        // --- KONIEC OPRAVY ---
     }
 
     // showSpisModal (bez zmeny)
@@ -286,7 +306,24 @@ document.addEventListener('DOMContentLoaded', async () => {
      */
     function renderAgendaTabs(agendaKey, agendaConfig) {
         const agendaView = document.getElementById('agenda-view'); if (!agendaView) { console.error("Kritická chyba: Element #agenda-view nebol nájdený počas renderAgendaTabs."); return; }
-        agendaView.querySelector('.content-header h2').textContent = agendaConfig.title; agendaView.querySelector('.selection-summary strong').nextSibling.textContent = ` ${AppState.okresData.Okresny_urad}`; agendaView.querySelector('.spis-display span').textContent = AppState.spis;
+        agendaView.querySelector('.content-header h2').textContent = agendaConfig.title; 
+        agendaView.querySelector('.selection-summary strong').nextSibling.textContent = ` ${AppState.okresData.Okresny_urad}`;
+        
+        // --- ZAČIATOK OPRAVY: Logika pre zobrazenie stavu spisu ---
+        const spisDisplay = agendaView.querySelector('.spis-display');
+        const spisSpan = spisDisplay ? spisDisplay.querySelector('span') : null;
+
+        if (spisDisplay && spisSpan) {
+            if (AppState.spis) {
+                // Ak spis existuje, zobrazíme ho normálne
+                spisSpan.textContent = AppState.spis;
+                spisDisplay.classList.remove('spis-display--error');
+            } else {
+                // Ak spis neexistuje (napr. po resete), zobrazíme varovanie
+                spisSpan.textContent = 'Nie je zadané číslo spisu !';
+                spisDisplay.classList.add('spis-display--error');
+            }
+        }
         const fileInputsHTML = agendaConfig.dataInputs.map(inputConf => `<div class="file-input-wrapper"><div class="file-drop-zone" id="drop-zone-${inputConf.id}"><div class="file-drop-zone__prompt"><i class="fas fa-upload"></i><p><strong>${inputConf.label}</strong></p><span>Presuňte súbor sem alebo kliknite</span></div><div class="file-details"><div class="file-info"><i class="far fa-file-excel"></i><div><div class="file-name"></div><div class="file-size"></div></div><button class="btn-remove-file" data-input-id="${inputConf.id}">&times;</button></div></div></div><input type="file" id="${inputConf.id}" accept=".xlsx,.xls" class="file-input" data-dropzone-id="drop-zone-${inputConf.id}"></div>`).join(''); agendaView.querySelector('#file-inputs-container').innerHTML = fileInputsHTML;
         const generatorsHTML = Object.keys(agendaConfig.generators).map(genKey => { const genConf = agendaConfig.generators[genKey]; const isXlsx = genConf.outputType === 'xlsx'; const buttonText = isXlsx ? 'Exportovať (.xlsx)' : 'Generovať (.docx)'; let mailButtonHTML = ''; if (agendaKey === 'vp' && genKey === 'zoznamyObce') mailButtonHTML = `<div class="generator-group"><button id="send-mail-btn-vp" class="btn btn--primary" style="display: none; margin-top: 0.5rem;"><i class="fas fa-paper-plane"></i> Pripraviť e-maily obciam</button></div>`; return `<div class="doc-box"><h4>${genConf.title}</h4><p class="doc-box__description">${isXlsx ? 'Tento export vygeneruje súbor .xlsx.' : 'Generuje dokumenty na základe šablóny.'}</p><button id="${genConf.buttonId}" class="btn btn--accent" data-generator-key="${genKey}" disabled><i class="fas fa-cogs"></i> <span class="btn-text">${buttonText}</span></button>${mailButtonHTML}</div>`; }).join(''); agendaView.querySelector('#generators-container').innerHTML = generatorsHTML;
         agendaView.querySelector('#preview-container').innerHTML = `<div class="empty-state-placeholder"><i class="fas fa-file-import"></i><h4>Náhľad sa zobrazí po nahratí súborov</h4><p>Začnite nahratím vstupných súborov.</p></div>`;
@@ -407,7 +444,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             const spisDisplay = e.target.closest('.spis-display--editable'); 
             if (spisDisplay) { /* ... (kód pre edit spis) ... */ 
-                 e.stopPropagation(); const agendaKey = AppState.selectedAgendaKey; if (!agendaKey) return; const agendaConfig = agendaConfigs[agendaKey]; const currentValue = AppState.spis; showSpisModal(agendaKey, agendaConfig, currentValue); return; 
+                 e.stopPropagation(); 
+                 const agendaKey = AppState.selectedAgendaKey; 
+                 if (!agendaKey) return; 
+                 const agendaConfig = agendaConfigs[agendaKey]; 
+                 
+                 // --- ZAČIATOK OPRAVY ---
+                 // Ak je AppState.spis null (po resete), použijeme prázdny reťazec
+                 const currentValue = AppState.spis || ''; 
+                 // --- KONIEC OPRAVY ---
+                 
+                 showSpisModal(agendaKey, agendaConfig, currentValue); 
+                 return; 
             }
         }, { signal }); 
 
