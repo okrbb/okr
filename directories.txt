@@ -1,0 +1,61 @@
+OKR/
+├── css/
+│   ├── _components.css
+│   ├── _layout.css
+│   ├── _notifications.css
+│   ├── _tour.css
+│   ├── _variables.css
+│   ├── favicon.png
+│   ├── logo.png
+│   └── styles.css
+│
+├── DATA/
+│   ├── DR/
+│   │   ├── TEMP_OBALKY_DR.docx
+│   │   ├── TEMP_pHAROK_DR.docx
+│   │   └── TEMP_ROZHODNUTIE_DR.docx
+│   │
+│   ├── PP/
+│   │   ├── TEMP_OBALKY_PP.docx
+│   │   ├── TEMP_pHAROK_PP.docx
+│   │   └── TEMP_ROZHODNUTIE_PP.docx
+│   │
+│   ├── UB/
+│   │   ├── TEMP_OBALKY_UB.docx
+│   │   ├── TEMP_pHAROK_UB.docx
+│   │   └── TEMP_ROZHODNUTIE_UB.docx
+│   │
+│   ├── VP/
+│   │   ├── TEMP_OBALKY_VP.docx
+│   │   ├── TEMP_pHAROK_VP.docx
+│   │   └── TEMP_ROZHODNUTIE_VP.docx
+│   │
+│   ├── emaily_obci.json
+│   ├── okresne_urady.json
+│   ├── PSC.xlsx
+│   └── TEMP_ZOZNAMY_DORUCENIE.docx
+│
+│
+├── js/
+│   ├── processors/
+│   │   ├── drProcessor.js
+│   │   ├── ppProcessor.js
+│   │   ├── ubProcessor.js
+│   │   └── vpProcessor.js
+│   │
+│   ├── agendaConfigFactory.js
+│   ├── config.js
+│   ├── DocumentProcessor.js
+│   ├── helpContent.js
+│   ├── main-wizard.js
+│   ├── tour.js
+│   └── ui.js
+│
+├── public/
+│   └── templates/
+│       ├── DR_vzor (14 kB).xlsx
+│       ├── PP_vzor (39 kB).xlsx
+│       ├── UB_vzor (15 kB).xlsx
+│       └── VP_vzor (21 kB).xlsx
+│
+└── index.html
