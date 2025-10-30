@@ -95,7 +95,7 @@ body {
 .logo-circle {
     width: 48px;
     height: 48px;
-    background: var(--primary-gradient);
+    background: var(--surface-color);
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
