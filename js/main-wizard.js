@@ -231,7 +231,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Hlavná logika a funkcie
     function resetAgendaState() { localStorage.removeItem('krokr-spis'); Object.assign(AppState, { spis: null, selectedAgendaKey: null, processor: null, files: {}, municipalitiesMailContent: {}, zoznamyPreObceGenerated: false, }); showWelcomeMessage(); }
-    function resetApp() { localStorage.removeItem('krokr-lastOU'); localStorage.removeItem('krokr-lastAgenda'); resetAgendaState(); AppState.selectedOU = null; AppState.okresData = null; const ouLabel = document.getElementById('okresny-urad-label'); const ouOptions = document.getElementById('okresny-urad-options'); if (ouLabel) ouLabel.textContent = ''; if (ouOptions) { ouOptions.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected')); const placeholder = ouOptions.querySelector('.custom-select-option[data-value=""]'); if (placeholder) placeholder.classList.add('selected'); } AppState.notifications = []; renderNotifications(); updateUIState(); addNotification('Aplikácia bola resetovaná.', 'info'); } // Zmenené na addNotification
+    
+    function resetApp() { 
+        localStorage.removeItem('krokr-lastOU'); 
+        localStorage.removeItem('krokr-lastAgenda'); 
+        resetAgendaState(); 
+        AppState.selectedOU = null; 
+        AppState.okresData = null; 
+        const ouLabel = document.getElementById('okresny-urad-label'); 
+        const ouOptions = document.getElementById('okresny-urad-options'); 
+        if (ouLabel) ouLabel.textContent = 'Prosím, vyberte OÚ'; 
+        if (ouOptions) { 
+            ouOptions.querySelectorAll('.custom-select-option').forEach(opt => opt.classList.remove('selected')); 
+            const placeholder = ouOptions.querySelector('.custom-select-option[data-value=""]'); 
+            if (placeholder) placeholder.classList.add('selected'); 
+        } 
+        
+        // === PRIDANÁ ZMENA: Reset textu na úvodnej obrazovke ===
+        const welcomePrompt = document.getElementById('welcome-prompt');
+        if (welcomePrompt) {
+            welcomePrompt.textContent = 'Prosím, začnite výberom okresného úradu v paneli vľavo.';
+        }
+        // === KONIEC PRIDANEJ ZMENY ===
+        
+        AppState.notifications = []; 
+        renderNotifications(); 
+        updateUIState(); 
+        addNotification('Aplikácia bola resetovaná.', 'info'); 
+    } // Zmenené na addNotification
 
     function setOkresnyUrad(ouKey) {
         const ouLabel = document.getElementById('okresny-urad-label'); 
@@ -258,6 +285,13 @@ document.addEventListener('DOMContentLoaded', async () => {
              if (summarySpan) summarySpan.nextSibling.textContent = ` ${AppState.okresData.Okresny_urad}`;
         }
         // === KONIEC ZMENY ===
+
+        // === PRIDANÁ ZMENA: Aktualizácia textu na úvodnej obrazovke ===
+        const welcomePrompt = document.getElementById('welcome-prompt');
+        if (welcomePrompt) {
+            welcomePrompt.textContent = 'Prosím, začnite výberom agendy v paneli vľavo.';
+        }
+        // === KONIEC PRIDANEJ ZMENY ===
 
         updateUIState();
     }

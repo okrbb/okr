@@ -106,23 +106,21 @@ const TROUBLESHOOTING_HTML = `
 /**
  * Exportovaná funkcia, ktorá generuje kompletný HTML kód pre Centrum nápovedy.
  * @param {object} params - Objekt obsahujúci dynamické dáta.
- * @param {string} params.okresName - Názov aktuálne vybraného OÚ.
+ * @param {string} params.okresName - Názov aktuálne vybraného OÚ. (Už sa nepoužíva)
  * @param {string} params.downloadListHTML - HTML reťazec pre zoznam súborov na stiahnutie.
  * @returns {string} - Kompletný HTML reťazec.
  */
 export function getHelpCenterHTML({ okresName, downloadListHTML }) {
-    const title = `Centrum nápovedy`;
+    
+    // === ODSTRÁNENÝ BLOK, KTORÝ SPÔSOBOVAL DUPLICITU ===
+    // const title = `Centrum nápovedy`;
+    //
+    // <div class="content-header">
+    //     ...
+    // </div>
+    // === KONIEC ODSTRÁNENIA ===
 
     return `
-        <div class="content-header">
-            <h2><i class="fas fa-life-ring" style="color: var(--primary-color);"></i> ${title}</h2>
-            <div class="header-meta">
-                <div class="selection-summary">
-                    <strong>Okresný úrad:</strong> ${okresName}
-                </div>
-            </div>
-        </div>
-
         <div class="agenda-tabs-container">
             <button class="agenda-tab active" data-tab="faq"><i class="fas fa-question-circle"></i> Časté otázky</button>
             <button class="agenda-tab" data-tab="download"><i class="fas fa-download"></i> Na stiahnutie</button>
