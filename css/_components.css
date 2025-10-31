@@ -1,4 +1,4 @@
-/* js/_components.css */
+/* css/_components.css */
 /* ================================================= */
 /* === REDIZAJN KOMPONENTOV (z des.html) =========== */
 /* ================================================= */
@@ -134,7 +134,7 @@
     border-radius: var(--radius-md);
     transition: var(--transition); 
     width: 100%; 
-    background-color: var(--surface-color); 
+    background-color: rgba(255, 255, 255, 0.7); /* ZMENA: Z var(--surface-color) */ 
     box-shadow: var(--shadow-xs);
     position: relative;
 }
@@ -262,7 +262,7 @@
     border-radius: var(--radius-md);
     transition: var(--transition); 
     font-size: var(--font-size-sm);
-    background: var(--surface-color);
+    background: rgba(255, 255, 255, 0.7); /* ZMENA: Z var(--surface-color) */
     box-shadow: var(--shadow-xs);
     color: var(--text-color); /* Pridané pre dark mode */
 }
@@ -441,10 +441,14 @@
     overflow-y: auto;
     max-height: 400px;
     width: 100%;
-    border: 1px solid var(--border-color);
+    
+    /* ZMENA: Aplikovaný glass-effect */
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    background: var(--surface-color);
 }
 .data-preview-table-wrapper table { 
     width: 100%; 
@@ -459,11 +463,13 @@
     font-size: var(--font-size-sm);
 }
 .data-preview-table-wrapper th { 
-    background-color: var(--neutral-50);
+    background-color: var(--neutral-50); /* ZMENA: Z var(--neutral-50) */
     font-weight: 600; 
     position: sticky; 
     top: 0; 
     color: var(--text-color);
+    z-index: 10;
+    white-space: normal;
 }
 .data-preview-table-wrapper tr:last-child td { 
     border-bottom: none; 
@@ -509,7 +515,11 @@
 }
 
 .modal-content { 
-    background: var(--surface-color); 
+    /* ZMENA: Aplikovaný glass-effect */
+    background: rgba(255, 255, 255, 1); /* Trochu menej priehľadné pre čitateľnosť */
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-xl); 
     max-width: 810px; 
@@ -603,11 +613,15 @@
     justify-content: center;
     text-align: center;
     padding: 2rem;
-    border: none;
+    
+    /* ZMENA: Aplikovaný glass-effect */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(250, 250, 249, 0.7); /* Z var(--neutral-50) */
+    backdrop-filter: blur(20px) saturate(180%);
+    
     border-radius: var(--radius-lg);
     color: var(--text-secondary);
     min-height: 150px;
-    background-color: var(--neutral-50);
     transition: background-color var(--duration-normal) ease-out; /* Pridané pre plynulú zmenu */
 }
 .empty-state-placeholder i {
@@ -661,10 +675,13 @@
     padding: 0.5rem 0;
 }
 .accordion-card {
-    background-color: var(--surface-color);
+    /* ZMENA: Aplikovaný glass-effect */
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
     transition: var(--transition);
     overflow: hidden; 
 }
@@ -682,12 +699,12 @@
     font-weight: 600;
     font-size: 1rem;
     color: var(--text-color);
-    background-color: var(--surface-color);
+    background-color: transparent; /* ZMENA: Z var(--surface-color) */
     border-bottom: none;
     transition: all 0.2s;
 }
 .accordion-card.active .accordion-header {
-    background-color: var(--primary-light);
+    background-color: rgba(0, 64, 128, 0.1); /* ZMENA: Priehľadná verzia --primary-light */
     border-bottom: 1px solid var(--border-color);
 }
 .accordion-card.active .accordion-header,
@@ -721,7 +738,7 @@
     overflow: hidden;
     transition: max-height 0.4s ease-out, padding 0.4s ease-out;
     padding: 0 1.5rem;
-    background-color: var(--background-color);
+    background-color: transparent; /* ZMENA: Z var(--background-color) */
     font-size: 0.9rem;
     line-height: 1.5;
     color: var(--text-secondary);

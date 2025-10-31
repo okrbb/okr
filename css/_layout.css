@@ -1,4 +1,4 @@
-/* js/_layout.css */
+/* css/_layout.css */
 /* ================================================= */
 /* === ZÁKLADNÝ RESET A LAYOUT ===================== */
 /* ================================================= */
@@ -22,6 +22,31 @@
     to { 
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* === PRIDANÉ KEYFRAMES (zo styles2.css) === */
+@keyframes gradientPan {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(30px, -30px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
     }
 }
 /* --- KONIEC KEYFRAMES --- */
@@ -50,22 +75,77 @@ body {
     display: flex; 
     height: 100vh; 
     position: relative; /* Pre z-index pozadia */
+    z-index: 1; /* <-- PRIDANÉ (aby bolo nad orbami) */
 }
+
+/* === PRIDANÉ: ANIMOVANÉ POZADIE (ORBS) (zo styles2.css) === */
+.background-orbs {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0; /* <-- ZMENA (aby bolo nad pozadím body, ale pod .dashboard-container) */
+    pointer-events: none;
+}
+
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15; /* Znížená opacita pre jemnejší efekt */
+    animation: float 20s ease-in-out infinite;
+}
+
+.orb-1 {
+    width: 500px;
+    height: 500px;
+    /* Použité premenné z _variables.css */
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    top: -200px;
+    left: -200px;
+    animation-delay: 0s;
+}
+
+.orb-2 {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, var(--accent-color), var(--primary-light));
+    bottom: -150px;
+    right: -150px;
+    animation-delay: 7s;
+}
+
+.orb-3 {
+    width: 300px;
+    height: 300px;
+    /* Nahradená --mocha za --neutral-500 */
+    background: linear-gradient(135deg, var(--neutral-500), var(--primary-color));
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation-delay: 14s;
+}
+/* === KONIEC PRIDANIA ORBS === */
+
 
 /* === ZMENA: Glassmorphic Sidebar (z des.html) === */
 .dashboard-sidebar {
     width: 300px;
-    /* Priehľadné pozadie s gradientom a blur-om */
+    
+    /* ZMENA: Väčšia priehľadnosť a zjednotený glass-effect */
     background: linear-gradient(
         180deg,
-        rgba(255, 255, 255, 0.95) 0%,
-        rgba(250, 250, 249, 0.95) 100%
+        rgba(255, 255, 255, 0.75) 0%, /* Z 0.95 na 0.75 */
+        rgba(250, 250, 249, 0.75) 100% /* Z 0.95 na 0.75 */
     );
-    backdrop-filter: blur(30px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%); /* Z 30px na 20px */
     padding: var(--space-8); /* 2rem */
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid rgba(255, 255, 255, 0.3); /* Z var(--border-color) */
+    
     /* Nový tieň */
     box-shadow: 
         2px 0 40px rgba(0, 64, 128, 0.08), /* Upravená farba tieňa */
@@ -83,57 +163,48 @@ body {
 .logo-section {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    justify-content: center; 
     margin-bottom: var(--space-8);
-    padding: var(--space-4);
-    background: var(--surface-gradient-1);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
     transition: var(--transition); /* Pridané pre plynulú zmenu */
     flex-shrink: 0; /* Zabraňuje zmenšeniu */
 }
+
+/* === PRIDANÉ ŠTÝLY PRE ANIMÁCIU LOGA (zo styles2.css) === */
+.logo-circle:hover {
+    background: transparent;
+    animation: none;
+}
+
+.logo-circle:hover .sidebar-logo {
+    /* Presná animácia z .header-logo-container:hover .header-logo-img [styles2.css] */
+    transform: scale(2.45) rotate(360deg);
+    filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.3));
+}
+/* === KONIEC PRIDANÝCH ŠTÝLOV === */
+
 .logo-circle {
-    width: 48px;
-    height: 48px;
-    background: var(--surface-color);
-    border-radius: var(--radius-md);
+    width: 108px;
+    height: 108px;
+    background: transparent;
+    border-radius: var(--radius-md); /* Prevzaté z styles2.css */
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--shadow-md);
-    flex-shrink: 0;
     position: relative;
-    overflow: hidden;
+    transition: all var(--transition-smooth); /* Prevzaté z styles2.css */
+    flex-shrink: 0;
 }
-/* Ikona slúži ako fallback */
-.logo-circle i {
-    color: white;
-    font-size: 1.5rem;
-}
+
 /* Logo je na vrchu */
 .sidebar-logo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-.logo-text {
-    flex: 1;
-}
-.logo-text h1 {
-    font-family: var(--font-display);
-    font-size: var(--font-size-lg);
-    font-weight: 700;
-    color: var(--text-color);
-    line-height: 1.2;
-    margin: 0; /* Reset */
-}
-.logo-text p {
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-    margin: 0; /* Reset */
+    width: 100%; /* ZMENA: (podľa styles2.css) */
+    height: 100%; /* ZMENA: (podľa styles2.css) */
+    object-fit: contain; /* ZMENA: (podľa styles2.css) */
+    padding: 8px; /* PRIDANÉ: (podľa styles2.css) */
+    position: relative; /* Ponechané (zhoduje sa s styles2.css) */
+    z-index: 2; /* PRIDANÉ: (podľa styles2.css) */
+    border-radius: 0; /* ZMENA: Zaoblenie je na .logo-circle */
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1); /* ZMENA: (podľa styles2.css) */
 }
 
 .sidebar-context {
@@ -414,10 +485,13 @@ body {
 .workflow-container { display: flex; flex-direction: column; gap: 2rem; }
 
 .workflow-step { 
-    background-color: var(--surface-color);
+    /* ZMENA: Aplikovaný glass-effect (rovnaký ako .doc-box) */
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    /* Ponechané pôvodné */
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
     transition: var(--transition); 
 }
 
