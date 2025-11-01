@@ -161,7 +161,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center; 
-    margin-top: var(--space-8); /* ZMENA: Presunuté z margin-bottom */
+    margin-top: 0; /* ZMENA: Vynulované, keďže je v hlavičke */
     margin-bottom: 0; /* ZMENA: Vynulované */
     transition: var(--transition); /* Pridané pre plynulú zmenu */
     flex-shrink: 0; /* Zabraňuje zmenšeniu */
@@ -176,14 +176,14 @@ body {
 
 .logo-circle:hover .sidebar-logo {
     /* Presná animácia z .header-logo-container:hover .header-logo-img [styles2.css] */
-    transform: scale(2.27) rotate(360deg);
+    transform: scale(2.72) rotate(360deg);
     filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.3));
 }
 /* === KONIEC PRIDANÝCH ŠTÝLOV === */
 
 .logo-circle {
-    width: 108px;
-    height: 108px;
+    width: 50px; /* ZMENA: Zmenšené pre hlavičku (bolo 108px) */
+    height: 50px; /* ZMENA: Zmenšené pre hlavičku (bolo 108px) */
     background: transparent;
     border-radius: var(--radius-md); /* Prevzaté z styles2.css */
     display: flex;
@@ -199,7 +199,7 @@ body {
     width: 100%; /* ZMENA: (podľa styles2.css) */
     height: 100%; /* ZMENA: (podľa styles2.css) */
     object-fit: contain; /* ZMENA: (podľa styles2.css) */
-    padding: 8px; /* PRIDANÉ: (podľa styles2.css) */
+    padding: 4px; /* ZMENA: Zmenšený padding (bolo 8px) */
     position: relative; /* Ponechané (zhoduje sa s styles2.css) */
     z-index: 2; /* PRIDANÉ: (podľa styles2.css) */
     border-radius: 0; /* ZMENA: Zaoblenie je na .logo-circle */
@@ -222,7 +222,6 @@ body {
 
 /* === ZMENA: Agenda (.sidebar-nav) je teraz priamo na ploche === */
 .sidebar-nav {
-    flex-grow: 1;
     overflow-y: auto;
     overflow-x: hidden;
     /* === ZAČIATOK ZMENY === */
@@ -308,21 +307,13 @@ body {
 .sidebar-notifications {
     /* ZMENA: Rozdelenie margin-top na margin a padding pre čiaru */
     margin-top: var(--space-2); /* Medzera od navigácie po čiaru */
-    padding-top: var(--space-4); /* ZMENA: Medzera od čiary po obsah (bola --space-2) */
+    padding-top: var(--space-8); /* ZMENA: Medzera od čiary po obsah (bola --space-2) */
     border-top: 1px solid var(--border-color); /* Oddeľovacia čiara */
     
     flex-shrink: 0; /* Zabraňuje zmenšeniu */
     display: flex;
     flex-direction: column;
-    max-height: 207px; /* Pevná maximálna výška */
-    
-    /* ODSTRÁNENÉ: Štýly pre "plávajúci kontajner" */
-    /* background: ... */
-    /* backdrop-filter: ... */
-    /* border: ... */
-    /* border-radius: ... */
-    /* box-shadow: ... */
-    /* padding: ... */
+    max-height: 360px; /* Pevná maximálna výška */
 }
 .sidebar-notifications .notification-list {
     /* Štýly sú definované v _notifications.css */
@@ -396,10 +387,17 @@ body {
     
     display: flex; 
     flex-direction: column;
-    gap: var(--space-12);
+    gap: var(--space-16);
     
     position: relative;
     z-index: 1;
+}
+
+/* === PRIDANÁ TRIEDA PRE ZOSKUPENIE LOGA A VÝBERU === */
+.header-left-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12); /* Použije rovnakú medzeru ako bola v hlavičke */
 }
 
 .main-header-controls {
@@ -430,9 +428,25 @@ body {
 }
 
 #ou-select-wrapper {
-    max-width: 350px; /* Nastavte na vhodnú maximálnu šírku (napr. 350px) */
-    width: 100%; /* Uistí sa, že to funguje správne v rámci flex kontajnera */
-    flex-shrink: 1; /* Povolenie zmenšenia, ak je to potrebné */
+    /* === KĽÚČOVÁ ZMENA: Nastavenie pevnej/maximálnej šírky === */
+    max-width: 350px; /* Nová pevná maximálna šírka pre stabilizáciu */
+    width: 100%; 
+    flex-shrink: 0; /* ZMENA: Zakážeme zmenšenie, ak je to potrebné */
+    /* === KONIEC KĽÚČOVEJ ZMENY === */
+}
+
+/* Oprava medzery v tlačidle pre výber OÚ */
+
+#okresny-urad-label {
+    /* Pridá malý pravý okraj, aby sa text "OÚ" odtlačil od šípky */
+    margin-right: 0.9rem; 
+    
+    /* === KĽÚČOVÁ ZMENA: Zakázanie zalomenia a obmedzenie šírky === */
+    display: block;
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    /* === KONIEC KĽÚČOVEJ ZMENY === */
 }
 
 .header-actions {
@@ -721,11 +735,8 @@ body {
         border-radius: 0; /* Zrušenie zaoblenia pre mobilný header */
     }
     
-    .logo-section {
-        margin-bottom: 0;
-        margin-top: 0; /* ZMENA: Vynulovanie aj horného okraja na mobile */
-        flex-basis: 300px; /* Pevná šírka pre logo */
-    }
+    /* === ZMENA: ODSTRÁNENÉ PRAVIDLO PRE .logo-section === */
+    /* (.logo-section je teraz súčasťou .main-header-controls) */
     
     .sidebar-context {
         margin-bottom: 0;
@@ -831,6 +842,12 @@ body {
         overflow-x: auto;
         white-space: nowrap;
     }
+    
+    /* Nové pravidlo pre mobilné zariadenia */
+    #ou-select-wrapper {
+        max-width: 100%; 
+        flex-grow: 1;
+    }
 }
 /* === KONIEC ZMENY === */
 
@@ -900,3 +917,24 @@ aby smeroval nahor namiesto nadol (napr. top: 100%;) */
     color: var(--danger-color);
 }
 /* === KONIEC ZMENY === */
+
+.file-drop-zone.disabled-overlay {
+    position: relative;
+    pointer-events: auto; 
+    cursor: not-allowed;
+}
+.file-drop-zone.disabled-overlay::after {
+    content: 'Vyžaduje sa číslo spisu!';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--danger-color);
+    font-weight: 700;
+    font-size: 1.1rem;
+    border-radius: var(--radius-lg);
+    z-index: 100;
+}
