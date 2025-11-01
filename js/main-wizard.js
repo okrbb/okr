@@ -85,8 +85,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // const notificationPanel = document.getElementById('notification-center-panel');
     // const notificationBadge = document.querySelector('.notification-badge');
     const notificationList = document.getElementById('notification-list');
-    const clearNotificationsBtn = document.getElementById('clear-notifications-btn');
-    // === KONIEC ZMENY ===
+    
+    // === ZAČIATOK KĽÚČOVEJ ZMENY: Načítanie iba jedného tlačidla ===
+    const headerClearNotificationsBtn = document.getElementById('header-clear-notifications-btn'); //
+    // === KONIEC KĽÚČOVEJ ZMENY ===
 
     // Inicializácia
     populateOkresnyUradSelect(OKRESNE_URADY); 
@@ -105,20 +107,21 @@ document.addEventListener('DOMContentLoaded', async () => {
      * === KĽÚČOVÁ ZMENA: Listener pre `helpCenterBtn` volá `showHelpCenterModal` ===
      */
     function setupStaticListeners() {
-        // === ZAČIATOK ZMENY: Zjednodušené listenery notifikácií ===
-        // Notifikácie
-        clearNotificationsBtn.addEventListener('click', () => { 
-            AppState.notifications = []; 
-            renderNotifications(); 
-            // Priamo zavoláme addNotification, keďže showNotification už len dispatchuje
-            addNotification('História notifikácií bola vymazaná.', 'info'); 
-        });
+        // === ZAČIATOK KĽÚČOVEJ ZMENY: Listener už len pre tlačidlo v hlavičke ===
+        if (headerClearNotificationsBtn) { //
+            headerClearNotificationsBtn.addEventListener('click', () => { 
+                AppState.notifications = []; 
+                renderNotifications(); 
+                // Priamo zavoláme addNotification, keďže showNotification už len dispatchuje
+                addNotification('História notifikácií bola vymazaná.', 'info'); 
+            });
+        }
         
         document.addEventListener('add-notification', (e) => { 
             addNotification(e.detail.message, e.detail.type); 
         });
         // Odstránené listenery pre notificationBellBtn a zatváranie panelu
-        // === KONIEC ZMENY ===
+        // === KONIEC KĽÚČOVEJ ZMENY ===
 
         // Vlastný select pre OÚ (bez zmeny)
         const ouSelectWrapper = document.getElementById('ou-select-wrapper');
@@ -250,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // === PRIDANÁ ZMENA: Reset textu na úvodnej obrazovke ===
         const welcomePrompt = document.getElementById('welcome-prompt');
         if (welcomePrompt) {
-            welcomePrompt.textContent = 'Prosím, začnite výberom okresného úradu v paneli vľavo.';
+            welcomePrompt.textContent = 'Prosím, začnite výberom okresného úradu v honrom paneli.';
         }
         // === KONIEC PRIDANEJ ZMENY ===
         

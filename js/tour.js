@@ -27,13 +27,13 @@ export function startGuidedTour() {
         id: 'step1-ou',
         title: `
             <div class="tour-header">
-                <span class="tour-step-indicator">Krok 1 / 4</span>
+                <span class="tour-step-indicator">Krok 1 / 5</span>
                 <h3>Výber pracoviska</h3>
             </div>`,
         text: 'Vitajte! Najprv vyberte váš okresný úrad. Tým sa načítajú správne údaje o vašom pracovisku (adresa, vedúci a pod.).',
         attachTo: {
-            element: '.sidebar-context', // Zmenené
-            on: 'right'
+            element: '#ou-select-wrapper', 
+            on: 'bottom'
         },
         buttons: [{
             text: 'Ďalej',
@@ -45,12 +45,12 @@ export function startGuidedTour() {
         id: 'step2-agenda',
         title: `
             <div class="tour-header">
-                <span class="tour-step-indicator">Krok 2 / 4</span>
+                <span class="tour-step-indicator">Krok 2 / 5</span>
                 <h3>Výber agendy</h3>
             </div>`,
         text: 'Výborne. Teraz si vyberte agendu, s ktorou chcete pracovať. Každá položka predstavuje iný typ dokumentov na generovanie.',
         attachTo: {
-            element: '.sidebar-nav', // Zmenené
+            element: '.sidebar-nav', // Tento zostáva, je stále v bočnom paneli
             on: 'right'
         },
         buttons: [{
@@ -63,13 +63,36 @@ export function startGuidedTour() {
         }]
     });
 
-    // KROK 3 (MAIL) BOL ODSTRÁNENÝ
-    
+    // === ZAČIATOK ZMENY: Pridaný nový krok pre históriu ===
     tour.addStep({
-        id: 'step3-content', // Pôvodne step4
+        id: 'step3-history',
         title: `
             <div class="tour-header">
-                <span class="tour-step-indicator">Krok 3 / 4</span>
+                <span class="tour-step-indicator">Krok 3 / 5</span>
+                <h3>História udalostí</h3>
+            </div>`,
+        text: 'Tu sa budú zobrazovať všetky dôležité informácie, úspechy alebo chyby, ktoré sa stanú počas práce s aplikáciou.',
+        attachTo: {
+            element: '.sidebar-notifications', //
+            on: 'right'
+        },
+        buttons: [{
+            text: 'Späť',
+            secondary: true,
+            action: tour.back
+        }, {
+            text: 'Ďalej',
+            action: tour.next
+        }]
+    });
+    // === KONIEC ZMENY ===
+
+    tour.addStep({
+        // === ZMENA: Aktualizované ID a číslovanie ===
+        id: 'step4-content',
+        title: `
+            <div class="tour-header">
+                <span class="tour-step-indicator">Krok 4 / 5</span>
                 <h3>Pracovná plocha</h3>
             </div>`,
         text: 'Po výbere agendy sa tu zobrazí pracovná plocha rozdelená na karty "Spracovanie" (pre vkladanie súborov) a "Generovanie" (pre export dokumentov).', // Upravený text
@@ -88,16 +111,17 @@ export function startGuidedTour() {
     });
 
     tour.addStep({
-        id: 'step4-footer', // Pôvodne step5
+        // === ZMENA: Aktualizované ID a číslovanie ===
+        id: 'step5-footer',
         title: `
             <div class="tour-header">
-                <span class="tour-step-indicator">Krok 4 / 4</span>
+                <span class="tour-step-indicator">Krok 5 / 5</span>
                 <h3>Nástroje a pomoc</h3>
             </div>`,
-        text: 'Tu nájdete užitočné nástroje: Centrum notifikácií, Nápovedu, opätovné spustenie tohto sprievodcu a možnosť resetovať celú aplikáciu.',
+        text: 'Tu nájdete užitočné nástroje: Centrum nápovedy, opätovné spustenie tohto sprievodcu, zmazanie histórie udalostí a možnosť resetovať celú aplikáciu.',
         attachTo: {
-            element: '.sidebar-footer',
-            on: 'top'
+            element: '.header-actions',
+            on: 'bottom'
         },
         buttons: [{
             text: 'Späť',
