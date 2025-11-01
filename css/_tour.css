@@ -1,4 +1,4 @@
-/* js/_tour.css */
+/* css/_tour.css */
 /* ====================================================== */
 /* === REDIZAJN: Štýly pre Sprievodcu (Shepherd.js) ===== */
 /* ====================================================== */
@@ -123,9 +123,4 @@
     background: var(--danger-color) !important; 
     color: white !important; 
     transform: rotate(90deg) !important; /* Animácia otočenia */
-}
-
-/* Posledná úprava (bezo zmeny) */
-#sidebar-step-2 .step-content {
-    padding-bottom: 0;
 }

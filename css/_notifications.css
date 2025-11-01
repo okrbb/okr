@@ -1,4 +1,4 @@
-/* js/_notifications.css */
+/* css/_notifications.css */
 /* ================================================= */
 /* === ŠTÝLY PRE NOTIFIKAČNÉ CENTRUM (V PANELI) === */
 /* ================================================= */
@@ -12,9 +12,8 @@
     overflow-y: auto; /* Rolovanie pre zoznam */
     background: var(--neutral-50);
     border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
     padding: var(--space-2);
-    min-height: 100px; /* Minimálna výška */
+    min-height: 180px; /* Minimálna výška */
     
     /* === ZAČIATOK ZMENY: Skrytie posuvníka === */
     scrollbar-width: none; /* Firefox */

@@ -60,7 +60,10 @@ body {
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.6;
-    overflow-x: hidden;
+    
+    /* ZMENA: Zabráni rolovaniu celej stránky (body) na desktope */
+    overflow: hidden; 
+    
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     /* Pridaná plynulá zmena farieb */
@@ -72,7 +75,7 @@ body {
 /* ================================================= */
 
 .dashboard-container { 
-    display: flex; 
+    /* ZMENA: Odstránený display: flex; Sidebar už nie je súčasťou toku */
     height: 100vh; 
     position: relative; /* Pre z-index pozadia */
     z-index: 1; /* <-- PRIDANÉ (aby bolo nad orbami) */
@@ -130,33 +133,27 @@ body {
 /* === KONIEC PRIDANIA ORBS === */
 
 
-/* === ZMENA: Glassmorphic Sidebar (z des.html) === */
+/* === ZMENA: Sidebar je teraz "neviditeľný" fixný kontajner === */
 .dashboard-sidebar {
     width: 300px;
     
-    /* ZMENA: Väčšia priehľadnosť a zjednotený glass-effect */
-    background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.75) 0%, /* Z 0.95 na 0.75 */
-        rgba(250, 250, 249, 0.75) 100% /* Z 0.95 na 0.75 */
-    );
-    backdrop-filter: blur(20px) saturate(180%); /* Z 30px na 20px */
+    /* ZMENA: Priehľadné pozadie a žiadne okraje/tiene */
+    background: transparent;
+    backdrop-filter: none;
     padding: var(--space-8); /* 2rem */
     display: flex;
     flex-direction: column;
-    border-right: 1px solid rgba(255, 255, 255, 0.3); /* Z var(--border-color) */
+    border-right: none;
+    box-shadow: none;
     
-    /* Nový tieň */
-    box-shadow: 
-        2px 0 40px rgba(0, 64, 128, 0.08), /* Upravená farba tieňa */
-        2px 0 8px rgba(0, 0, 0, 0.04);
-    position: sticky;
+    /* ZMENA: Z position: sticky na position: fixed */
+    position: fixed;
     top: 0;
+    left: 0; /* Pridané pre istotu */
     height: 100vh;
     z-index: 10;
     /* Pridaná plynulá zmena farieb */
-    transition: background-color var(--duration-normal) ease-out, border-color var(--duration-normal) ease-out, box-shadow var(--duration-normal) ease-out, width var(--duration-normal) ease-out, height var(--duration-normal) ease-out;
-    flex-shrink: 0; /* Zabraňuje zmenšeniu na mobile */
+    transition: background-color var(--duration-normal) ease-out, border-color var(--duration-normal) ease-out, box-shadow var(--duration-normal) ease-out, width var(--duration-normal) ease-out, height var(--duration-normal) ease-out, flex-shrink 0; /* Zabraňuje zmenšeniu na mobile */
 }
 
 /* === NOVÁ: Hlavička loga (z des.html) === */
@@ -164,9 +161,11 @@ body {
     display: flex;
     align-items: center;
     justify-content: center; 
-    margin-bottom: var(--space-8);
+    margin-top: var(--space-8); /* ZMENA: Presunuté z margin-bottom */
+    margin-bottom: 0; /* ZMENA: Vynulované */
     transition: var(--transition); /* Pridané pre plynulú zmenu */
     flex-shrink: 0; /* Zabraňuje zmenšeniu */
+    /* Logo je teraz na ploche, žiadne zmeny nie sú potrebné */
 }
 
 /* === PRIDANÉ ŠTÝLY PRE ANIMÁCIU LOGA (zo styles2.css) === */
@@ -177,7 +176,7 @@ body {
 
 .logo-circle:hover .sidebar-logo {
     /* Presná animácia z .header-logo-container:hover .header-logo-img [styles2.css] */
-    transform: scale(2.45) rotate(360deg);
+    transform: scale(2.27) rotate(360deg);
     filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.3));
 }
 /* === KONIEC PRIDANÝCH ŠTÝLOV === */
@@ -213,7 +212,7 @@ body {
 }
 .context-label {
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--text-color);
     margin-bottom: 0.75rem;
     display: block;
     font-size: 0.8rem;
@@ -221,6 +220,7 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* === ZMENA: Agenda (.sidebar-nav) je teraz priamo na ploche === */
 .sidebar-nav {
     flex-grow: 1;
     overflow-y: auto;
@@ -230,7 +230,6 @@ body {
     
     /* Skrytie posuvníka */
     scrollbar-width: none; /* Firefox */
-    /* === KONIEC ZMENY === */
 }
 /* === ZAČIATOK ZMENY: Skrytie posuvníka pre WebKit === */
 .sidebar-nav::-webkit-scrollbar {
@@ -305,16 +304,30 @@ body {
 }
 
 
-/* === ZAČIATOK ZMENY: Nové štýly pre blok notifikácií === */
+/* === ZAČIATOK ZMENY: História (.sidebar-notifications) je teraz priamo na ploche === */
 .sidebar-notifications {
-    margin-top: var(--space-4); /* Medzera od navigácie */
+    /* ZMENA: Rozdelenie margin-top na margin a padding pre čiaru */
+    margin-top: var(--space-2); /* Medzera od navigácie po čiaru */
+    padding-top: var(--space-4); /* ZMENA: Medzera od čiary po obsah (bola --space-2) */
+    border-top: 1px solid var(--border-color); /* Oddeľovacia čiara */
+    
     flex-shrink: 0; /* Zabraňuje zmenšeniu */
     display: flex;
     flex-direction: column;
-    max-height: 200px; /* Pevná maximálna výška */
+    max-height: 207px; /* Pevná maximálna výška */
+    
+    /* ODSTRÁNENÉ: Štýly pre "plávajúci kontajner" */
+    /* background: ... */
+    /* backdrop-filter: ... */
+    /* border: ... */
+    /* border-radius: ... */
+    /* box-shadow: ... */
+    /* padding: ... */
 }
 .sidebar-notifications .notification-list {
     /* Štýly sú definované v _notifications.css */
+    /* Tieto štýly (pozadie, okraj, padding) sa teraz aplikujú, */
+    /* keďže rodič už nemá vlastný padding */
     flex-grow: 1;
     overflow-y: auto;
 }
@@ -344,7 +357,8 @@ body {
 .sidebar-footer {
     margin-top: auto;
     padding-top: var(--space-4); /* 1rem */
-    border-top: 1px solid var(--border-color);
+    /* ZMENA: Odstránený border-top, keďže sidebar už nie je viditeľný */
+    /* border-top: 1px solid var(--border-color); */
     display: flex;
     flex-direction: row;
     gap: var(--space-2); /* 0.5rem */
@@ -368,14 +382,63 @@ body {
 }
 
 .dashboard-content {
-    flex: 1;
-    padding: var(--space-8) var(--space-12); /* 2rem 3rem */
-    overflow-y: auto;
+    /* ZMENA: Pridaná plná výška a odstránené flex: 1 */
+    height: 100vh; 
+    
+    /* ZMENA: Pridaný margin-left, aby sa obsah posunul doprava od fixného sidebaru */
+    margin-left: 300px; /* Šírka .dashboard-sidebar */
+    
+    /* Ponechajte pôvodný padding, ktorý zabezpečí medzeru po stranách a na vrchu/spodku */
+    padding: var(--space-4) var(--space-12) var(--space-8) var(--space-12); 
+    
+    overflow-y: auto; /* Zabezpečí rolovanie IBA TOHTO KONTENJERA */
     overflow-x: hidden;
-    display: grid;
-    grid-template-areas: "main-content";
+    
+    display: flex; 
+    flex-direction: column;
+    gap: var(--space-12);
+    
     position: relative;
     z-index: 1;
+}
+
+.main-header-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-6);
+    
+    /* ZMENA: PRIDANÝ horizontálny padding a PONECHANÝ vertikálny padding */
+    padding: var(--space-4) var(--space-6); 
+    
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    
+    /* === KĽÚČOVÉ VLASTNOSTI PRE PLÁVAJÚCI/PRILEPENÝ EFEKT === */
+    position: sticky; /* Zabezpečí, že sa prilepí pri rolovaní */
+    
+    /* === ZMENA === */
+    /* Z top: 0 na top: var(--space-4) */
+    /* Prilepí sa presne na svoju počiatočnú pozíciu (vďaka paddingu kontajnera), */
+    /* takže sa pri rolovaní vôbec nepohne. */
+    top: var(--space-4); 
+    
+    z-index: 100; /* Zabezpečí, že bude nad všetkým obsahom */
+}
+
+#ou-select-wrapper {
+    max-width: 350px; /* Nastavte na vhodnú maximálnu šírku (napr. 350px) */
+    width: 100%; /* Uistí sa, že to funguje správne v rámci flex kontajnera */
+    flex-shrink: 1; /* Povolenie zmenšenia, ak je to potrebné */
+}
+
+.header-actions {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
 }
 
 .welcome-message { 
@@ -383,7 +446,9 @@ body {
     flex-direction: column; 
     align-items: center; 
     justify-content: center; 
-    height: 100%; 
+    /* Ak chcete, aby sa natiahol cez zostávajúci priestor, použite: */
+    flex-grow: 1;
+    /* Ak nechcete, nechajte len flexbox vlastnosti na centrovanie obsahu */
     text-align: center; 
     color: var(--text-secondary); 
 }
@@ -403,6 +468,12 @@ body {
     background-clip: text;
     margin-bottom: var(--space-2);
     line-height: 1.2;
+}
+
+/* Špeciálne pravidlo pre welcome-view, ktoré potrebuje flex pre centrovanie */
+#welcome-view.active {
+    display: flex;
+    flex-direction: column; /* Aby sa .welcome-message natiahol */
 }
 
 .content-header {
@@ -580,20 +651,29 @@ body {
 
 
 .main-view {
-    grid-area: main-content;
+    display: none; /* <-- PRIDAJTE TENTO RIADOK */
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 0.4s ease, transform 0.4s ease;
     pointer-events: none;
     visibility: hidden;
+    width: 100%; /* Uistí sa, že zaberá celú šírku */
+    flex-grow: 1; /* Umožní mu vyplniť zostávajúci priestor */
 }
 .main-view.active {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
     visibility: visible;
-    display: block;
+
+    /* ZMENA: Ak je to Welcome View, potrebujeme flex, inak block */
+    display: block; 
+
     animation: fade-in 0.5s; 
+}
+/* Špeciálne pravidlo pre welcome-view, ktoré potrebuje flex pre centrovanie */
+#welcome-view.active {
+    display: flex;
 }
 
 
@@ -601,7 +681,9 @@ body {
 
 /* Tablet (zmenšenie paddingu) */
 @media (max-width: 1024px) {
+    /* ZMENA: Úprava margin-left pre tablety */
     .dashboard-content {
+        /* Ponecháme margin-left 300px, ale zmenšíme vnútorný padding */
         padding: var(--space-6) var(--space-8); /* 1.5rem 2rem */
     }
     .workflow-step {
@@ -611,24 +693,37 @@ body {
 
 /* Mobil (zmena layoutu) */
 @media (max-width: 768px) {
+    
+    /* ZMENA: Vrátenie rolovania pre body na mobile */
+    body {
+        overflow: auto; /* Pôvodné správanie na mobile */
+    }
+
     .dashboard-container {
-        flex-direction: column;
+        /* Pôvodný flex-direction: column už nie je relevantný */
         height: auto;
     }
     
     .dashboard-sidebar {
         width: 100%;
         height: auto;
-        position: static;
+        position: static; /* Z fixného na statický */
+        /* ZMENA: Pridanie glassmorphic pozadia pre mobilný "header" */
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: var(--shadow-md); /* Tieň pod lištou */
+        
         padding: var(--space-4); /* Menší padding */
         flex-direction: row; /* Zarovnanie do riadku */
         flex-wrap: wrap; /* Zalamovanie */
         gap: var(--space-4);
+        border-radius: 0; /* Zrušenie zaoblenia pre mobilný header */
     }
     
     .logo-section {
         margin-bottom: 0;
+        margin-top: 0; /* ZMENA: Vynulovanie aj horného okraja na mobile */
         flex-basis: 300px; /* Pevná šírka pre logo */
     }
     
@@ -645,6 +740,21 @@ body {
         overflow-y: hidden;
         overflow-x: auto; /* Horizontálne rolovanie */
         min-height: auto;
+        
+        /* ZMENA: Agenda na mobile zostáva plávajúca karta */
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.75) 0%,
+            rgba(250, 250, 249, 0.75) 100%
+        );
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 
+            2px 0 40px rgba(0, 64, 128, 0.08),
+            2px 0 8px rgba(0, 0, 0, 0.04);
+        padding: var(--space-4);
+        
+        border-radius: var(--radius-lg); /* Menšie zaoblenie na mobile */
     }
     .nav-list {
         flex-direction: row; /* Agendy vedľa seba */
@@ -670,6 +780,21 @@ body {
         width: 100%;
         margin-top: 0;
         max-height: 150px; /* Nižší limit na mobile */
+        
+        /* ZMENA: História na mobile zostáva plávajúca karta */
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.75) 0%,
+            rgba(250, 250, 249, 0.75) 100%
+        );
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 
+            2px 0 40px rgba(0, 64, 128, 0.08),
+            2px 0 8px rgba(0, 0, 0, 0.04);
+        padding: var(--space-4);
+        
+        border-radius: var(--radius-lg);
     }
     
     .sidebar-footer {
@@ -681,7 +806,13 @@ body {
     }
     
     .dashboard-content {
+        /* ZMENA: Odstránenie margin-left na mobile */
+        margin-left: 0;
         padding: var(--space-4) var(--space-4); /* 1rem */
+        
+        /* ZMENA: Vypnutie vlastného rolovania na mobile */
+        height: auto;
+        overflow-y: visible; 
     }
     
     .content-header {
@@ -700,5 +831,72 @@ body {
         overflow-x: auto;
         white-space: nowrap;
     }
+}
+/* === KONIEC ZMENY === */
+
+/* === NOVÉ ŠTÝLY PRE ZOBRAZOVANIE TOOLTIPOV POD TLAČIDLAMI === */
+
+/* Kontajner pre tlačidlá s tooltips */
+.header-actions .btn[data-tooltip] {
+    position: relative;
+}
+
+/* Všeobecný štýl pre tooltip (pseudo-element ::after) */
+.header-actions .btn[data-tooltip]::after {
+    /* Umiestnenie pod tlačidlom: */
+    top: 100%; /* Presunie začiatok tooltpu pod spodnú hranu tlačidla */
+    margin-top: 10px; /* Pridá malú medzeru */
+    bottom: auto; /* Zabezpečí, že sa nezobrazí hore (ak bol nastavený) */
+    
+    /* Centrovanie pod tlačidlom: */
+    left: 50%;
+    transform: translateX(-50%); 
+    
+    /* Váš existujúci kód pre tooltip, ktorý zabezpečuje zobrazenie (farby, padding, atď.) */
+    content: attr(data-tooltip); /* Získa text z atribútu */
+    
+    /* --- PRIDAJTE TENTO ŠTÝL, ak tooltipy nie sú definované inde --- */
+    position: absolute;
+    min-width: max-content;
+    padding: 6px 10px;
+    background: var(--neutral-800, #333);
+    color: white;
+    border-radius: var(--radius-sm, 4px);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+    /* ---------------------------------------------------------------- */
+}
+
+/* Štýl pre zobrazenie tooltipu pri nabehnutí myšou */
+.header-actions .btn[data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Ak máte aj šípku, je potrebné upraviť aj pseudo-element ::before, 
+aby smeroval nahor namiesto nadol (napr. top: 100%;) */
+/* .header-actions .btn[data-tooltip]::before { ... } */
+
+/* === ZAČIATOK ZMENY: Hover farby pre ikony v hlavičke === */
+
+/* Pridá plynulý prechod farby pre všetky ikony v hlavičke */
+.header-actions .btn i {
+    transition: color var(--duration-normal) ease-out;
+}
+
+/* Nápoveda (otáznik) a Sprievodca (info) budú primárnej (modrej) farby */
+.header-actions #show-help-center:hover i,
+.header-actions #reset-tour-btn:hover i {
+    color: var(--primary-color);
+}
+
+/* Kôš (vymazanie notifikácií) bude červenej farby */
+.header-actions #header-clear-notifications-btn:hover i {
+    color: var(--danger-color);
 }
 /* === KONIEC ZMENY === */
