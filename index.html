@@ -1,95 +1,82 @@
 <!DOCTYPE html>
-<html lang="sk" data-color-scheme="light"> <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="sk" data-color-scheme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OKR - Dashboard</title>
-    <link rel="icon" href="css/favicon.png" type="image/x-icon">
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
-
+    <link rel="icon" href="./css/favicon.png" type="image/x-icon" />
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/pizzip@3.1.1/dist/pizzip.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.57.3/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    
-    </head>
+</head>
 <body>
-    
     <div class="background-orbs">
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
         <div class="orb orb-3"></div>
     </div>
+
     <div class="dashboard-container">
         <aside class="dashboard-sidebar">
-            
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <img src="css/logo.svg" alt="Logo OKR" class="sidebar-logo">
-                </div>
-            </div>
-            
-            <div class="sidebar-context">
-                <label for="okresny-urad" class="context-label">Pracovisko</label>
-                <div id="ou-select-wrapper" class="select-item"> <i class="fas fa-building"></i>
-                    
-                    <button class="custom-select-trigger" id="okresny-urad-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
-                        <span id="okresny-urad-label">Prosím, vyberte OÚ</span>
-                    </button>
-                    
-                    <div class="custom-select-options" id="okresny-urad-options" role="listbox" style="display: none;">
-                        </div>
-                </div>
-            </div>
-
             <nav class="sidebar-nav">
-                <label class="context-label">Agendy</label>
+                <label class="context-label">Agenda</label>
                 <ul class="nav-list" id="agenda-navigation">
                     <li><a href="#" class="nav-link" data-agenda="vp"><i class="fas fa-truck"></i><span>Vecné prostriedky</span></a></li>
                     <li><a href="#" class="nav-link" data-agenda="pp"><i class="fas fa-briefcase"></i><span>Pracovná povinnosť</span></a></li>
                     <li><a href="#" class="nav-link" data-agenda="ub"><i class="fas fa-bed"></i><span>Ubytovanie</span></a></li>
                     <li><a href="#" class="nav-link" data-agenda="dr"><i class="fas fa-envelopes-bulk"></i><span>Doručovatelia</span></a></li>
-                </ul>
+                    </ul>
             </nav>
-            
             <div class="sidebar-notifications">
                 <label class="context-label">História udalostí</label>
                 <ul id="notification-list" class="notification-list">
                     <li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>
                 </ul>
-                <button id="clear-notifications-btn" class="btn btn--secondary">Vymazať históriu</button>
             </div>
-            <div class="sidebar-footer">
-                <button id="show-help-center" class="btn btn--secondary" data-tooltip="Centrum nápovedy"><i class="fas fa-life-ring"></i></button>
-                
-                <button id="reset-tour-btn" class="btn btn--secondary" data-tooltip="Zobraziť sprievodcu"><i class="fas fa-route"></i></button>
-                <button id="reset-app-btn" class="btn btn--secondary" data-tooltip="Resetovať aplikáciu"><i class="fas fa-sync-alt"></i></button>
+            <div class="logo-section">
+                <div class="logo-circle">
+                    <img src="./css/logo.svg" alt="Logo OKR" class="sidebar-logo" />
+                </div>
             </div>
-        </aside>
+            </aside>
 
         <main id="dashboard-content" class="dashboard-content">
-            
+            <header class="main-header-controls">
+                <div id="ou-select-wrapper" class="select-item">
+                    <i class="fas fa-bus"></i> <button class="custom-select-trigger" id="okresny-urad-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                        <span id="okresny-urad-label">Prosím, vyberte OÚ</span>
+                    </button>
+                    <div class="custom-select-options" id="okresny-urad-options" role="listbox" style="display: none;"></div>
+                </div>
+                <div class="header-actions">
+                    <button id="show-help-center" class="btn btn--icon" data-tooltip="Nápoveda"><i class="fas fa-question"></i></button>
+                    <button id="reset-tour-btn" class="btn btn--icon" data-tooltip="Sprievodca"><i class="fas fa-info"></i></button>
+                    <button id="header-clear-notifications-btn" class="btn btn--icon" data-tooltip="Vymaž notifikácie"><i class="fas fa-trash"></i></button>
+                    <button id="reset-app-btn" class="btn btn--icon" data-tooltip="Reset aplikácie"><i class="fas fa-sync-alt"></i></button>
+                </div>
+            </header>
+
             <div id="welcome-view" class="main-view active">
-                <div class="welcome-message" style="height: calc(100vh - 4rem);">
-                    <i class="fas fa-hand-pointer"></i>
+                <div class="welcome-message"> <i class="fas fa-hand-pointer"></i>
                     <h2>Vitajte v aplikácii</h2>
-                    <p id="welcome-prompt">Prosím, začnite výberom okresného úradu v paneli vľavo.</p>
+                    <p id="welcome-prompt">Prosím, začnite výberom okresného úradu v honrom paneli.</p>
                 </div>
             </div>
 
             <div id="agenda-view" class="main-view">
                 <div class="content-header">
-                    <h2></h2> 
+                    <h2></h2>
                     <div class="header-meta">
                         <div class="selection-summary">
                             <strong>Okresný úrad:</strong> <span></span>
                         </div>
                         <div class="spis-display spis-display--editable" data-tooltip="Kliknutím zmeníte číslo spisu">
-                            <i class="fas fa-folder"></i>
-                            <span></span>
+                            <i class="fas fa-folder"></i> <span></span>
                         </div>
                     </div>
                 </div>
@@ -102,7 +89,6 @@
                         <i class="fas fa-file-export"></i> 2. Generovanie
                     </button>
                 </div>
-
                 <div class="agenda-tab-content-wrapper">
                     <div id="tab-spracovanie" class="agenda-tab-content active">
                         <div class="workflow-step" style="padding: 1.5rem 2rem;">
@@ -120,7 +106,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div id="tab-generovanie" class="agenda-tab-content">
                         <div class="workflow-step" style="padding: 1.5rem 2rem;">
                             <h3>Generovanie dokumentov</h3>
@@ -132,21 +117,21 @@
 
             <div id="help-view" class="main-view">
                 </div>
-
         </main>
-        </div>
+    </div>
+
+    <div id="spinner-overlay" class="spinner-overlay" style="display: none; display:flex;">
+        <div class="spinner"></div>
+    </div>
     
-    <div id="spinner-overlay" class="spinner-overlay" style="display: flex;"><div class="spinner"></div></div>
     <div id="modal-container"></div>
     
-    <script src="js/config.js" type="module"></script>
-    <script src="js/ui.js" type="module"></script>
-    <script src="js/DocumentProcessor.js" type="module"></script>
-    <script src="js/agendaConfigFactory.js" type="module"></script>
+    <script src="./js/config.js" type="module"></script>
+    <script src="./js/ui.js" type="module"></script>
+    <script src="./js/DocumentProcessor.js" type="module"></script>
+    <script src="./js/agendaConfigFactory.js" type="module"></script>
     <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
-    <script src="js/tour.js" type="module"></script>
-    <script src="js/main-wizard.js" type="module"></script>
-    
-    <script src="js/config.js" type="module"></script>
+    <script src="./js/tour.js" type="module"></script>
+    <script src="./js/main-wizard.js" type="module"></script>
 </body>
 </html>
