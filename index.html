@@ -33,30 +33,32 @@
                     </ul>
             </nav>
             <div class="sidebar-notifications">
-                <label class="context-label">História udalostí</label>
+                <label class="context-label">Asistent</label>
                 <ul id="notification-list" class="notification-list">
                     <li class="empty-state">Zatiaľ žiadne nové notifikácie.</li>
                 </ul>
-            </div>
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <img src="./css/logo.svg" alt="Logo OKR" class="sidebar-logo" />
-                </div>
             </div>
             </aside>
 
         <main id="dashboard-content" class="dashboard-content">
             <header class="main-header-controls">
-                <div id="ou-select-wrapper" class="select-item">
-                    <i class="fas fa-bus"></i> <button class="custom-select-trigger" id="okresny-urad-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
-                        <span id="okresny-urad-label">Prosím, vyberte OÚ</span>
-                    </button>
-                    <div class="custom-select-options" id="okresny-urad-options" role="listbox" style="display: none;"></div>
+                <div class="header-left-group">
+                    <div class="logo-section">
+                        <div class="logo-circle">
+                            <img src="./css/logo.svg" alt="Logo OKR" class="sidebar-logo" />
+                        </div>
+                    </div>
+                    <div id="ou-select-wrapper" class="select-item">
+                        <i class="fas fa-building"></i> <button class="custom-select-trigger" id="okresny-urad-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                            <span id="okresny-urad-label">Prosím, vyberte OÚ</span>
+                        </button>
+                        <div class="custom-select-options" id="okresny-urad-options" role="listbox" style="display: none;"></div>
+                    </div>
                 </div>
                 <div class="header-actions">
                     <button id="show-help-center" class="btn btn--icon" data-tooltip="Nápoveda"><i class="fas fa-question"></i></button>
                     <button id="reset-tour-btn" class="btn btn--icon" data-tooltip="Sprievodca"><i class="fas fa-info"></i></button>
-                    <button id="header-clear-notifications-btn" class="btn btn--icon" data-tooltip="Vymazať notifikácie"><i class="fas fa-trash"></i></button>
+                    <button id="header-clear-notifications-btn" class="btn btn--icon" data-tooltip="Vymazať Asistenta"><i class="fas fa-trash"></i></button>
                     <button id="reset-app-btn" class="btn btn--icon" data-tooltip="Resetovať aplikáciu"><i class="fas fa-sync-alt"></i></button>
                 </div>
             </header>
@@ -132,8 +134,7 @@
     <script src="./js/agendaConfigFactory.js" type="module"></script>
     <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
     <script src="./js/tour.js" type="module"></script>
+    <script src="./js/Validator.js" type="module"></script>
     <script src="./js/main-wizard.js" type="module"></script>
 </body>
-
 </html>
-
