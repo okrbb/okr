@@ -1,7 +1,9 @@
 // js/DocumentProcessor.js
 
-// Odstránené 'toggleSpinner' z importu
-import { showNotification, toggleSpinner, showErrorModal, setButtonState } from './ui.js';
+// === ZMENA: Importujeme Asistenta namiesto showNotification ===
+import { Asistent, toggleSpinner, showErrorModal, setButtonState } from './ui.js';
+// === NOVÝ IMPORT ===
+import { validateRow } from './Validator.js';
 
 export class DocumentProcessor {
     constructor(config) {
@@ -10,6 +12,9 @@ export class DocumentProcessor {
             data: {},
             templates: {}, // Tento objekt sa teraz bude plniť postupne
             processedData: null,
+            // === NOVÝ STAV ===
+            hasValidationErrors: false, // Flag pre blokovanie generovania
+            // ===================
             // Ponechávame referenciu pre checkAllButtonsState
             appState: config.appState, 
         };
@@ -44,7 +49,8 @@ export class DocumentProcessor {
         }
 
         toggleSpinner(true);
-        showNotification(`Pripravuje sa šablóna: ${templateKey}...`, 'info', 2000);
+        // === ZMENA: Použitie Asistenta ===
+        Asistent.log(`Pripravuje sa šablóna: ${templateKey}...`);
 
         try {
             const response = await fetch(templatePath);
@@ -53,8 +59,10 @@ export class DocumentProcessor {
             }
             const buffer = await response.arrayBuffer();
             this.state.templates[templateKey] = new Uint8Array(buffer);
-            showNotification(`Šablóna '${templateKey}' je pripravená.`, 'success');
+            Asistent.success(`Šablóna '${templateKey}' je pripravená.`);
         } catch (error) {
+            // === ZMENA: Použitie Asistenta ===
+            Asistent.error(`Chyba pri načítaní šablóny '${templateKey}'`, error.message);
             showErrorModal({ message: `Nastala kritická chyba pri načítaní šablóny '${templateKey}'.`, details: error.message });
             throw error; // Znovu vyhodíme chybu, aby sa proces generovania zastavil
         } finally {
@@ -69,6 +77,8 @@ export class DocumentProcessor {
             this.state.data[stateKey] = arrayBuffer;
             this.checkAndProcessData(); 
         } catch (error) {
+             // === ZMENA: Použitie Asistenta ===
+             Asistent.error(`Chyba pri načítaní súboru ${file.name}`, error.message);
              showErrorModal({ message: `Chyba pri načítaní súboru ${file.name}: ${error.message}` });
         }
         this.checkAllButtonsState();
@@ -84,11 +94,13 @@ export class DocumentProcessor {
     // === ZMENA: Použitie Skeleton Loadingu namiesto Global Spinnera ===
     processData() {
         if (!this.config.dataProcessor) {
-            showNotification('Pre túto sekciu nie je definované spracovanie dát.', 'error');
+            // === ZMENA: Použitie Asistenta ===
+            Asistent.error('Pre túto sekciu nie je definované spracovanie dát.');
             return;
         }
         
         this.state.processedData = null;
+        this.state.hasValidationErrors = false; // Reset chýb
         
         // Krok 1: Zobrazíme Skeleton UI
         this._showPreviewSkeleton();
@@ -96,13 +108,19 @@ export class DocumentProcessor {
         // Krok 2: Dáme UI čas na prekreslenie a potom spustíme spracovanie
         setTimeout(() => {
             try {
+                // === ZMENA: Použitie Asistenta ===
+                Asistent.log('Spracovávam dáta zo súborov...');
                 this.state.processedData = this.config.dataProcessor(this.state.data);
                 this.displayPreview(); // Nahrádza skeleton reálnymi dátami
-                showNotification('Dáta boli úspešne automaticky spracované.', 'success');
+                
+                // === ZMENA: Hlásenie Asistentovi sa presunulo do displayPreview ===
+                
                 if (this.config.onDataProcessed) {
                     this.config.onDataProcessed();
                 }
             } catch (error) {
+                // === ZMENA: Použitie Asistenta ===
+                Asistent.error(`Nastala chyba pri spracovaní dát: ${error.message}`, error.stack);
                 showErrorModal({
                     message: `Nastala chyba pri spracovaní dát: ${error.message}`,
                     details: error.stack
@@ -131,25 +149,35 @@ export class DocumentProcessor {
         headers.forEach(h => tableHTML += `<th>${h}</th>`);
         tableHTML += '</tr></thead><tbody>';
 
-        // === ZMENA: Pridaný 'index' do forEach pre animáciu ===
+        // === NOVÉ: Pole na zber chýb pre Asistenta ===
+        const errorDetailsForAssistant = [];
+        const MAX_ERRORS_TO_LOG = 10; // Maximálny počet chýb na výpis do Asistenta
+        // ===========================================
+
         rows.forEach((row, index) => {
-        // === KONIEC ZMENY ===
             let rowIssues = [];
-            if (this.config.validators) {
-                this.config.validators.forEach(validator => {
-                    const cellValue = row[columnMap[validator.column]];
-                    if (!validator.rule(cellValue)) {
-                        rowIssues.push(validator.errorMessage);
-                    }
-                });
-            }
+            
+            // === ZAČIATOK KĽÚČOVEJ ZMENY: Nová validácia ===
+            const validationErrors = validateRow(this.config.sectionPrefix, row, columnMap);
+            rowIssues.push(...validationErrors);
+            // === KONIEC KĽÚČOVEJ ZMENY ===
             
             const isError = rowIssues.length > 0;
-            if (isError) issuesCount++;
+            if (isError) {
+                issuesCount++;
+                // === NOVÉ: Zbieranie chýb pre Asistenta ===
+                if (errorDetailsForAssistant.length < MAX_ERRORS_TO_LOG) {
+                    errorDetailsForAssistant.push({
+                        // Riadok v Exceli je o 2 viac (1 hlavička + 1 indexovanie od 0)
+                        // Ale pre používateľa je lepšie číslo riadku v tabuľke (index + 1)
+                        rowNum: index + 1,
+                        errors: validationErrors
+                    });
+                }
+                // =======================================
+            }
             
-            // === ZMENA: Pridaný inline štýl s premennou --row-index ===
             tableHTML += `<tr class="${isError ? 'row-error' : ''}" title="${rowIssues.join('\n')}" style="--row-index: ${index};">`;
-            // === KONIEC ZMENY ===
             
             headers.forEach((_, index) => {
                 tableHTML += `<td>${row[index] || ''}</td>`;
@@ -167,25 +195,45 @@ export class DocumentProcessor {
         `;
         
         previewContainer.innerHTML = headerHTML + `<div class="data-preview-table-wrapper">${tableHTML}</div>`;
+        
+        // === NOVÉ: Hlásenie Asistentovi o výsledku kontroly ===
+        this.state.hasValidationErrors = issuesCount > 0; // Nastavenie flagu
+
+        if (issuesCount > 0) {
+            Asistent.warn(`Asistent našiel ${issuesCount} chýb v dátach. Generovanie je zablokované, kým sa chyby neopravia.`);
+            // Vypísanie detailov chýb
+            errorDetailsForAssistant.forEach(detail => {
+                Asistent.error(`Riadok ${detail.rowNum}: ${detail.errors.join(', ')}`);
+            });
+            if (issuesCount > MAX_ERRORS_TO_LOG) {
+                Asistent.log(`...a ďalších ${issuesCount - MAX_ERRORS_TO_LOG} chýb (zobrazuje sa prvých ${MAX_ERRORS_TO_LOG}).`);
+            }
+        } else {
+            Asistent.success('Dáta boli úspešne spracované. Neboli nájdené žiadne chyby.');
+        }
+        // === KONIEC ===
     }
 
+    // === ZMENA: `checkAllButtonsState` teraz kontroluje aj `hasValidationErrors` ===
     checkAllButtonsState() {
         Object.keys(this.config.generators).forEach(key => {
             const generatorConfig = this.config.generators[key];
             const btn = document.getElementById(generatorConfig.buttonId);
             if(btn) {
-                // ZMENA: Kontrola načítania šablóny je odstránená, pretože to už nie je podmienka pre aktiváciu tlačidla.
                 const dataProcessed = !!this.state.processedData;
-                // Stále čítame z appState, ale iba pre UI
+                const hasErrors = this.state.hasValidationErrors; // Nový flag
                 const spisFilled = !!this.state.appState.spis; 
                 const ouSelected = !!this.state.appState.selectedOU;
 
-                const isReady = dataProcessed && spisFilled && ouSelected;
+                // Generovanie je pripravené, LEN AK nie sú chyby
+                const isReady = dataProcessed && spisFilled && ouSelected && !hasErrors;
+                
                 btn.disabled = !isReady;
                 btn.classList.toggle('ready', isReady);
             }
         });
     }
+    // === KONIEC ZMENY ===
     
     // ... (Metódy generateRowByRow, generateInBatches, generateByGroup zostávajú bezo zmeny) ...
     // ... (Tu preskočený kód pre stručnosť, ale je prítomný v súbore) ...
@@ -203,9 +251,19 @@ export class DocumentProcessor {
         // --- ODSTRÁNENÁ LOGIKA PRE PROGRESS BAR A PROGRESS FILL ---
 
         if (!this.state.processedData || this.state.processedData.length === 0) {
+            // === ZMENA: Použitie Asistenta ===
+            Asistent.error('Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.');
             showErrorModal({ message: 'Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.' });
             return;
         }
+
+        // === NOVÁ KONTROLA ===
+        if (this.state.hasValidationErrors) {
+            Asistent.error('Generovanie zablokované. V dátach sú stále chyby.');
+            showErrorModal({ message: 'Generovanie nie je možné spustiť, kým sú v dátach chyby (označené červenou v náhľade).' });
+            return;
+        }
+        // =======================
         
         // Nastavenie loading s pôvodným textom.
         setButtonState(button, 'loading', originalButtonText); 
@@ -268,7 +326,8 @@ export class DocumentProcessor {
 
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
-            showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
+            // === ZMENA: Použitie Asistenta ===
+            Asistent.success(`${generator.title} bolo úspešne dokončené!`);
 
             // --- KĽÚČOVÁ ZMENA: Nastavíme stav na úspech, text sa NEMENÍ ---
             setButtonState(button, 'success', originalButtonText); 
@@ -278,6 +337,8 @@ export class DocumentProcessor {
             }
 
         } catch (error) {
+             // === ZMENA: Použitie Asistenta ===
+             Asistent.error(`Chyba pri generovaní (row): ${error.message}`, error.stack);
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
              if (docBox) {
                 docBox.classList.remove('is-processing');
@@ -307,9 +368,19 @@ export class DocumentProcessor {
         const docBox = button.closest('.doc-box');
 
         if (!this.state.processedData || this.state.processedData.length === 0) {
+            // === ZMENA: Použitie Asistenta ===
+            Asistent.error('Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.');
             showErrorModal({ message: 'Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.' });
             return;
         }
+        
+        // === NOVÁ KONTROLA ===
+        if (this.state.hasValidationErrors) {
+            Asistent.error('Generovanie zablokované. V dátach sú stále chyby.');
+            showErrorModal({ message: 'Generovanie nie je možné spustiť, kým sú v dátach chyby (označené červenou v náhľade).' });
+            return;
+        }
+        // =======================
         
         // Nastavenie loading s pôvodným textom.
         setButtonState(button, 'loading', originalButtonText); 
@@ -356,7 +427,8 @@ export class DocumentProcessor {
             
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             saveAs(zipBlob, generator.zipName);
-            showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
+            // === ZMENA: Použitie Asistenta ===
+            Asistent.success(`${generator.title} bolo úspešne dokončené!`);
 
             // --- KĽÚČOVÁ ZMENA: Nastavíme stav na úspech, text sa NEMENÍ ---
             setButtonState(button, 'success', originalButtonText); 
@@ -366,6 +438,8 @@ export class DocumentProcessor {
             }
 
         } catch (error) {
+             // === ZMENA: Použitie Asistenta ===
+             Asistent.error(`Chyba pri generovaní (batch): ${error.message}`, error.stack);
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
              if (docBox) {
                 docBox.classList.remove('is-processing');
@@ -394,9 +468,19 @@ export class DocumentProcessor {
         const docBox = button.closest('.doc-box');
 
         if (!this.state.processedData || this.state.processedData.length === 0) {
+            // === ZMENA: Použitie Asistenta ===
+            Asistent.error('Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.');
             showErrorModal({ message: 'Dáta neboli spracované. Najprv prosím nahrajte vstupné súbory.' });
             return;
         }
+
+        // === NOVÁ KONTROLA ===
+        if (this.state.hasValidationErrors) {
+            Asistent.error('Generovanie zablokované. V dátach sú stále chyby.');
+            showErrorModal({ message: 'Generovanie nie je možné spustiť, kým sú v dátach chyby (označené červenou v náhľade).' });
+            return;
+        }
+        // =======================
 
         // Nastavenie loading s pôvodným textom.
         setButtonState(button, 'loading', originalButtonText); 
@@ -519,7 +603,8 @@ export class DocumentProcessor {
             }
             // =========================================
 
-            showNotification(`${generator.title} bolo úspešne dokončené!`, 'success');
+            // === ZMENA: Použitie Asistenta ===
+            Asistent.success(`${generator.title} bolo úspešne dokončené!`);
 
             // --- KĽÚČOVÁ ZMENA: Nastavíme stav na úspech, text sa NEMENÍ ---
             setButtonState(button, 'success', originalButtonText); 
@@ -529,6 +614,8 @@ export class DocumentProcessor {
             }
 
         } catch (error) {
+             // === ZMENA: Použitie Asistenta ===
+             Asistent.error(`Chyba pri generovaní (group): ${error.message}`, error.stack);
              showErrorModal({ message: `Chyba pri generovaní dokumentov: ${error.message}`, details: error.stack });
              if (docBox) {
                 docBox.classList.remove('is-processing');

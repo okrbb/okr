@@ -63,15 +63,15 @@ export function startGuidedTour() {
         }]
     });
 
-    // === ZAČIATOK ZMENY: Pridaný nový krok pre históriu ===
+    // === ZAČIATOK ZMENY: Aktualizácia textu pre Asistenta ===
     tour.addStep({
         id: 'step3-history',
         title: `
             <div class="tour-header">
                 <span class="tour-step-indicator">Krok 3 / 5</span>
-                <h3>História udalostí</h3>
+                <h3>Asistent</h3>
             </div>`,
-        text: 'Tu sa budú zobrazovať všetky dôležité informácie, úspechy alebo chyby, ktoré sa stanú počas práce s aplikáciou.',
+        text: 'Tu bude Asistent zobrazovať všetky dôležité informácie, úspechy alebo chyby, ktoré sa stanú počas práce s aplikáciou.',
         attachTo: {
             element: '.sidebar-notifications', //
             on: 'right'
@@ -118,7 +118,7 @@ export function startGuidedTour() {
                 <span class="tour-step-indicator">Krok 5 / 5</span>
                 <h3>Nástroje a pomoc</h3>
             </div>`,
-        text: 'Tu nájdete užitočné nástroje: Centrum nápovedy, opätovné spustenie tohto sprievodcu, zmazanie histórie udalostí a možnosť resetovať celú aplikáciu.',
+        text: 'Tu nájdete užitočné nástroje: Centrum nápovedy, opätovné spustenie tohto sprievodcu, zmazanie histórie Asistenta a možnosť resetovať celú aplikáciu.',
         attachTo: {
             element: '.header-actions',
             on: 'bottom'

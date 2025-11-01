@@ -99,24 +99,131 @@ export function showErrorModal({ title = 'Chyba', message, details = '' }) {
 }
 
 
-/**
- * Zobrazí dočasnú "toast" notifikáciu a odošle udalosť pre centrum notifikácií.
- * @param {string} message - Správa na zobrazenie.
- * @param {string} type - Typ notifikácie (info, success, warning, error).
- * @param {number} duration - Trvanie v ms.
- */
-// === FUNKCIA UPRAVENÁ PRE NOVÝ DIZAJN (des.html) ===
-export function showNotification(message, type = 'info', duration = 3000) { 
-    // === ZAČIATOK ZMENY: Celá časť vytvárajúca "toast" bola odstránená ===
-    // "Toast" sa už nezobrazuje, notifikácia ide priamo do centra.
-    // === KONIEC ZMENY ===
+// === ZAČIATOK VEĽKEJ ZMENY: Nový Asistent nahrádza showNotification ===
 
-    // 2. Odošleme udalosť pre centrum notifikácií (zvonček) - bezo zmeny
-    document.dispatchEvent(new CustomEvent('add-notification', {
-        detail: { message, type }
-    }));
-    // === KONIEC IMPLEMENTÁCIE ===
-}
+/**
+ * Singleton objekt Asistent, ktorý spravuje panel s históriou udalostí.
+ */
+export const Asistent = {
+    listElement: null,
+    messages: [],
+    
+    /**
+     * Inicializuje Asistenta s odkazom na UI element.
+     * @param {HTMLElement} listElement - Element <ul>, do ktorého sa budú správy renderovať.
+     */
+    init(listElement) {
+        this.listElement = listElement;
+        this.messages = [];
+        this._render();
+    },
+
+    /**
+     * Súkromná metóda na vykreslenie správ do UI.
+     */
+    _render() {
+        if (!this.listElement) return;
+        
+        if (this.messages.length === 0) {
+            this.listElement.innerHTML = '<li class="empty-state">Asistent je pripravený.</li>';
+            return;
+        }
+
+        this.listElement.innerHTML = this.messages.map(n => 
+            `<li class="notification-item ${n.type}">
+                <i class="fas ${this._getIconForType(n.type)} icon"></i>
+                <div class="content">
+                    <p>${n.message}</p>
+                    <div class="meta">${new Date(n.timestamp).toLocaleTimeString()}</div>
+                </div>
+            </li>`
+        ).join('');
+        
+        // Automatické rolovanie na najnovšiu správu (navrch)
+        this.listElement.scrollTop = 0;
+    },
+
+    /**
+     * Pridá novú správu do zoznamu.
+     * @param {string} message - Správa.
+     * @param {string} type - 'info', 'success', 'warning', 'error'.
+     */
+    _addMessage(message, type = 'info') {
+        const newMessage = {
+            id: Date.now(),
+            message,
+            type,
+            timestamp: new Date()
+        };
+        this.messages.unshift(newMessage); // Pridá na začiatok
+        
+        // Obmedzenie na posledných 50 správ
+        if (this.messages.length > 50) {
+            this.messages.pop();
+        }
+
+        this._render();
+    },
+
+    _getIconForType(type) {
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-times-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+        return icons[type] || 'fa-info-circle';
+    },
+
+    // --- Verejné metódy ---
+
+    /**
+     * Zaznamená bežnú informačnú správu.
+     * @param {string} message - Správa pre používateľa.
+     */
+    log(message) {
+        this._addMessage(message, 'info');
+    },
+
+    /**
+     * Zaznamená úspešnú operáciu.
+     * @param {string} message - Správa pre používateľa.
+     */
+    success(message) {
+        this._addMessage(message, 'success');
+    },
+
+    /**
+     * Zaznamená varovanie.
+     * @param {string} message - Správa pre používateľa.
+     */
+    warn(message) {
+        this._addMessage(message, 'warning');
+        console.warn(`[ASISTENT]: ${message}`);
+    },
+
+    /**
+     * Zaznamená chybu.
+     * @param {string} message - Správa pre používateľa.
+     * @param {string} [details] - Voliteľné detaily (napr. error.message), ktoré sa vypíšu do konzoly.
+     */
+    error(message, details = '') {
+        this._addMessage(message, 'error');
+        console.error(`[ASISTENT]: ${message}`, details);
+    },
+
+    /**
+     * Vymaže všetky správy Asistenta.
+     */
+    clear() {
+        this.messages = [];
+        this._render();
+        this.log('História Asistenta bola vymazaná.');
+    }
+};
+
+// === KONIEC VEĽKEJ ZMENY ===
+
 
 /**
  * Zobrazí alebo skryje globálny spinner.
